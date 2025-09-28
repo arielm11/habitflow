@@ -33,6 +33,6 @@ class Habito {
         nome: map['nome'],
         tipoMeta: map['tipoMeta'],
         metaValor: map['metaValor'],
-        ativo: map['ativo'] == 1 ? true : false);
+        ativo: map['ativo'] == 1);
   }
 }
