@@ -2,6 +2,7 @@ class Habito {
   // Atributos
   int? id;
   String nome;
+  String? descricao;
   String tipoMeta;
   String? metaValor;
   bool ativo;
@@ -10,6 +11,7 @@ class Habito {
   Habito({
     this.id,
     required this.nome,
+    this.descricao,
     required this.tipoMeta,
     this.metaValor,
     required this.ativo,
@@ -20,6 +22,7 @@ class Habito {
     return {
       'id': id,
       'nome': nome,
+      'descricao': descricao,
       'tipoMeta': tipoMeta,
       'metaValor': metaValor,
       'ativo': ativo ? 1 : 0,
@@ -32,6 +35,7 @@ class Habito {
         id: map['id'],
         nome: map['nome'],
         tipoMeta: map['tipoMeta'],
+        descricao: map['descricao'],
         metaValor: map['metaValor'],
         ativo: map['ativo'] == 1);
   }

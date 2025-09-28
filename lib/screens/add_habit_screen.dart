@@ -13,10 +13,9 @@ class AddHabitScreen extends StatefulWidget {
 }
 
 class _AddHabitScreenState extends State<AddHabitScreen> {
-  // Chave global para identificar e validar nosso formulário.
   final _formKey = GlobalKey<FormState>();
-  // Controlador para o campo de texto do nome.
   final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   // Variável para guardar o tipo de meta selecionado.
   // Começa com 'Feito/Não Feito' como padrão.
@@ -24,11 +23,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
   // Função para salvar o hábito no banco de dados.
   Future<void> _saveHabit() async {
-    // Primeiro, validamos o formulário. Se não for válido, não fazemos nada.
     if (_formKey.currentState!.validate()) {
-      // Criamos um novo objeto Habito com os dados do formulário.
       final newHabit = Habito(
         nome: _nameController.text,
+        descricao: _descriptionController.text,
         tipoMeta: _selectedGoalType,
         ativo: true, // Todo novo hábito começa como ativo.
       );
@@ -54,59 +52,72 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // --- CAMPO DE TEXTO PARA O NOME DO HÁBITO ---
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome do Hábito',
-                  hintText: 'Ex: Beber água, Ler um livro',
-                  border: OutlineInputBorder(),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // --- CAMPO DE TEXTO PARA O NOME DO HÁBITO ---
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do Hábito',
+                    hintText: 'Ex: Beber água, Ler um livro',
+                    border: OutlineInputBorder(),
+                  ),
+                  // Validador para garantir que o campo não está vazio.
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira um nome para o hábito.';
+                    }
+                    return null;
+                  },
                 ),
-                // Validador para garantir que o campo não está vazio.
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira um nome para o hábito.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // --- SELETOR PARA O TIPO DE META ---
-              const Text('Qual o tipo de meta?',
-                  style: TextStyle(fontSize: 16)),
-              DropdownButton<String>(
-                value: _selectedGoalType,
-                isExpanded: true,
-                items: <String>['Feito/Não Feito', 'Meta Numérica', 'Duração']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedGoalType = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 40),
-
-              // --- BOTÃO DE SALVAR ---
-              ElevatedButton(
-                onPressed: _saveHabit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.teal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                // --- CAMPO DE TEXTO PARA A DESCRIÇÃO DO HABITO ---
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição (opicional)',
+                    hintText: 'Beber aguá 2L de Água por dia',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                child: const Text('Salvar Hábito'),
-              ),
-            ],
+                const SizedBox(height: 24),
+
+                // --- SELETOR PARA O TIPO DE META ---
+                const Text('Qual o tipo de meta?',
+                    style: TextStyle(fontSize: 16)),
+                DropdownButton<String>(
+                  value: _selectedGoalType,
+                  isExpanded: true,
+                  items: <String>['Feito/Não Feito', 'Meta Numérica', 'Duração']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedGoalType = newValue!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 40),
+
+                // --- BOTÃO DE SALVAR ---
+                ElevatedButton(
+                  onPressed: _saveHabit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Salvar Hábito'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

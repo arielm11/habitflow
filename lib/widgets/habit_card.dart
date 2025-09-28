@@ -4,6 +4,7 @@ import 'package:habitflow/utils/app_colors.dart';
 // Card de Hábito
 class HabitCard extends StatelessWidget {
   final String habitName;
+  final String? description;
   final IconData icon;
   final bool isCompleted;
   final Function(bool?)? onChanged;
@@ -11,6 +12,7 @@ class HabitCard extends StatelessWidget {
   const HabitCard({
     super.key,
     required this.habitName,
+    this.description,
     required this.icon,
     required this.isCompleted,
     required this.onChanged,
@@ -40,6 +42,12 @@ class HabitCard extends StatelessWidget {
               fontSize: 18,
             ),
           ),
+          subtitle: (description != null && description!.isNotEmpty)
+              ? Text(
+                  description!,
+                  style: TextStyle(color: AppColors.graphite.withOpacity(0.6)),
+                )
+              : null,
           // Checkbox
           trailing: Checkbox(
             value: isCompleted,

@@ -93,6 +93,7 @@ class _HomePageState extends State<HomePage> {
                       final habit = habits[index];
                       return HabitCard(
                         habitName: habit.nome,
+                        description: habit.descricao,
                         // Ícone de exemplo por enquanto
                         icon: Icons.check_circle_outline,
                         // Estado do checkbox de exemplo por enquanto

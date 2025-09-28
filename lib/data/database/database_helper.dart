@@ -5,7 +5,7 @@ class DatabaseHelper {
   // Nome do arquivo do BD
   static const _databaseName = 'habitflow.db';
   // Versão do BD
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   // Nome da tabela de Hábitos
   static const tableHabitos = 'habitos';
@@ -25,8 +25,12 @@ class DatabaseHelper {
   // Inicializando o BD
   _initDatabase() async {
     String path = join(await getDatabasesPath(), _databaseName);
-    return await openDatabase(path,
-        version: _databaseVersion, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _onCreate,
+      // onUpgrade: _onUpgrade,
+    );
   }
 
   // Criando Tabela
@@ -35,12 +39,21 @@ class DatabaseHelper {
       CREATE TABLE $tableHabitos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
+        descricao TEXT,
         tipoMeta TEXT NOT NULL,
         metaValor TEXT,
         ativo INTEGER NOT NULL
       )
     ''');
   }
+
+  // Adicionando coluna
+  // Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  //   await db.execute('''
+  //     ALTER TABLE $tableHabitos
+  //     ADD COLUMN descricao TEXT;
+  //   ''');
+  // }
 
   // Métodos CRUD
 
