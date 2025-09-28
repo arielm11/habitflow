@@ -14,19 +14,25 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   // Controlador de StateView
   final PageController _controller = PageController();
-
-  bool _isLastPage = false;
+  // Contator das paginas
+  int _currentPage = 0;
 
   // Função para salvar que o onBoarding foi concluído
   Future<void> _completeOnBoarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_complete', true);
+    await prefs.setBool('hasSeenOnBoarding', true);
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -38,7 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             controller: _controller,
             onPageChanged: (index) {
               setState(() {
-                _isLastPage = index == 2;
+                _currentPage = index;
               });
             },
             children: const [
@@ -68,6 +74,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                // Botão para Voltar
+                Visibility(
+                  visible: _currentPage > 0,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: TextButton(
+                    onPressed: () {
+                      _controller.previousPage(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: const Text(
+                      "Voltar",
+                      style: TextStyle(
+                        color: AppColors.graphite,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+
                 // indicador de páginas (bolinhas)
                 SmoothPageIndicator(
                   controller: _controller,
@@ -78,7 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       activeDotColor: AppColors.teal),
                 ),
                 // botão de avançar
-                _isLastPage
+                _currentPage == 2
                     ? ElevatedButton(
                         onPressed: _completeOnBoarding,
                         style: ElevatedButton.styleFrom(
