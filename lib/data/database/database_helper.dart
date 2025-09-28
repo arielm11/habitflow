@@ -29,5 +29,30 @@ class DatabaseHelper {
         version: _databaseVersion, onCreate: _onCreate);
   }
 
-  //
+  // Criando Tabela
+  Future _onCreate(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE $tableHabitos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        tipoMeta TEXT NOT NULL,
+        metaValor TEXT,
+        ativo INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  // Métodos CRUD
+
+  // C - Create:  Inserir um novo hábito no banco de dados
+  Future<int> insertHabit(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.insert(tableHabitos, row);
+  }
+
+  // R - Read: Ler todos os habitos
+  Future<List<Map<String, dynamic>>> queryAllHabits() async {
+    Database db = await instance.database;
+    return await db.query(tableHabitos, orderBy: "id DESC");
+  }
 }

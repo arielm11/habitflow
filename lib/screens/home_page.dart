@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:habitflow/data/database/database_helper.dart';
+import 'package:habitflow/data/models/habito_model.dart';
+import 'package:habitflow/screens/add_habit_screen.dart';
 import 'package:habitflow/utils/app_colors.dart';
-import 'package:habitflow/widgets/habit_card.dart'; // Importando nosso novo widget
+import 'package:habitflow/widgets/habit_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,15 +13,28 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<Map<String, dynamic>> _habits = [
-    {'name': 'Beber 2L de Água', 'icon': Icons.water_drop, 'isCompleted': true},
-    {'name': 'Ler 10 páginas', 'icon': Icons.book, 'isCompleted': false},
-    {
-      'name': 'Meditar por 5 min',
-      'icon': Icons.self_improvement,
-      'isCompleted': false
-    },
-  ];
+  late Future<List<Habito>> _habitsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHabits();
+  }
+
+  void _loadHabits() {
+    setState(() {
+      _habitsFuture = DatabaseHelper.instance.queryAllHabits().then((maps) {
+        return maps.map((map) => Habito.fromMap(map)).toList();
+      });
+    });
+  }
+
+  void _navigateToAddHabit() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AddHabitScreen()),
+    );
+    _loadHabits();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,30 +61,56 @@ class _HomePageState extends State<HomePage> {
 
           // --- LISTA DE HÁBITOS ---
           Expanded(
-            child: ListView.builder(
-              itemCount: _habits.length, // O número de itens na lista
-              itemBuilder: (context, index) {
-                final habit = _habits[index];
-                return HabitCard(
-                  habitName: habit['name'],
-                  icon: habit['icon'],
-                  isCompleted: habit['isCompleted'],
-                  onChanged: (newValue) {
-                    // setState atualiza a tela quando um valor muda.
-                    setState(() {
-                      _habits[index]['isCompleted'] = newValue ?? false;
-                    });
-                  },
-                );
+            // USANDO O FUTUREBUILDER:
+            // Este widget constrói a interface com base no estado da nossa 'Future'.
+            child: FutureBuilder<List<Habito>>(
+              future: _habitsFuture,
+              builder: (context, snapshot) {
+                // 1. Enquanto os dados estão carregando:
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                // 2. Se ocorrer um erro:
+                else if (snapshot.hasError) {
+                  return Center(child: Text("Erro: ${snapshot.error}"));
+                }
+                // 3. Se os dados chegarem com sucesso, mas a lista estiver vazia:
+                else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Você ainda não tem hábitos.\nClique no '+' para adicionar o primeiro!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 18, color: AppColors.graphite),
+                    ),
+                  );
+                }
+                // 4. Se os dados chegarem com sucesso e a lista não estiver vazia:
+                else {
+                  final habits = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: habits.length,
+                    itemBuilder: (context, index) {
+                      final habit = habits[index];
+                      return HabitCard(
+                        habitName: habit.nome,
+                        // Ícone de exemplo por enquanto
+                        icon: Icons.check_circle_outline,
+                        // Estado do checkbox de exemplo por enquanto
+                        isCompleted: false,
+                        onChanged: (newValue) {
+                          // Lógica para atualizar o progresso virá aqui.
+                        },
+                      );
+                    },
+                  );
+                }
               },
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Lógica para adicionar um novo hábito
-        },
+        onPressed: _navigateToAddHabit, // Chama a nova função de navegação
         tooltip: 'Adicionar Hábito',
         child: const Icon(Icons.add),
       ),
