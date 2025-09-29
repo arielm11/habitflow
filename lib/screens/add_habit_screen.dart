@@ -72,7 +72,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // --- CAMPO DE TEXTO PARA A DESCRIÇÃO DO HABITO ---
                 TextFormField(
@@ -104,7 +104,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
                 // --- BOTÃO DE SALVAR ---
                 ElevatedButton(
