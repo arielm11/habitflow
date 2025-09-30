@@ -80,7 +80,7 @@ class DatabaseHelper {
 
   // Métodos CRUD para hábitos
 
-  // C - Create:  Inserir um novo hábito no banco de dados
+  // C - Create: Inserir um novo hábito no banco de dados
   Future<int> insertHabit(Map<String, dynamic> row) async {
     Database db = await instance.database;
     return await db.insert(tableHabitos, row);
@@ -92,30 +92,45 @@ class DatabaseHelper {
     return await db.query(tableHabitos, orderBy: "id DESC");
   }
 
+  // U - Update: Atualiza um hábito existente
+  Future<int> updateHabit(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    int id = row['id'];
+
+    return await db.update(tableHabitos, row, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // D - Delete: Deletar um hábito
+  Future<int> deleteHabit(int id) async {
+    Database db = await instance.database;
+
+    return await db.delete(tableHabitos, where: 'id = ?', whereArgs: [id]);
+  }
+
   // Métodos CRUD para registro de progresso
-  // Insere um registro de progresso
+  // C - Create: Insere um registro de progresso
   Future<void> insertRegistro(Map<String, dynamic> row) async {
     Database db = await instance.database;
     await db.insert(tableRegistros, row);
   }
 
-  // Deleta um registro de progresso para um hábito em uma data específica
-  Future<void> deleteRegistro(int habitoId, String data) async {
-    Database db = await instance.database;
-    await db.delete(
-      tableRegistros,
-      where: 'habitoId = ? AND data = ?',
-      whereArgs: [habitoId, data],
-    );
-  }
-
-  // Busca todos os registros de uma data específica
+  // R - Read: Busca todos os registros de uma data específica
   Future<List<Map<String, dynamic>>> queryRegistrosPorData(String data) async {
     Database db = await instance.database;
     return await db.query(
       tableRegistros,
       where: 'data = ?',
       whereArgs: [data],
+    );
+  }
+
+  // D - Delete: Deleta um registro de progresso para um hábito em uma data específica
+  Future<void> deleteRegistro(int habitoId, String data) async {
+    Database db = await instance.database;
+    await db.delete(
+      tableRegistros,
+      where: 'habitoId = ? AND data = ?',
+      whereArgs: [habitoId, data],
     );
   }
 }
