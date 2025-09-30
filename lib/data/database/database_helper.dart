@@ -5,10 +5,12 @@ class DatabaseHelper {
   // Nome do arquivo do BD
   static const _databaseName = 'habitflow.db';
   // Versão do BD
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
 
   // Nome da tabela de Hábitos
   static const tableHabitos = 'habitos';
+  // Nome da tabela de Registro de Processos
+  static const tableRegistros = 'registros_progresso';
 
   // Instânciando esse único objeto
   DatabaseHelper._privateConstructor();
@@ -29,7 +31,7 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
-      // onUpgrade: _onUpgrade,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -45,17 +47,38 @@ class DatabaseHelper {
         ativo INTEGER NOT NULL
       )
     ''');
+
+    await db.execute('''
+          CREATE TABLE $tableRegistros (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            habitoId INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            FOREIGN KEY (habitoId) REFERENCES $tableHabitos (id)
+          )
+          ''');
   }
 
   // Adicionando coluna
-  // Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  //   await db.execute('''
-  //     ALTER TABLE $tableHabitos
-  //     ADD COLUMN descricao TEXT;
-  //   ''');
-  // }
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+      ALTER TABLE $tableHabitos
+      ADD COLUMN descricao TEXT;
+    ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+          CREATE TABLE $tableRegistros (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            habitoId INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            FOREIGN KEY (habitoId) REFERENCES $tableHabitos (id)
+          )
+          ''');
+    }
+  }
 
-  // Métodos CRUD
+  // Métodos CRUD para hábitos
 
   // C - Create:  Inserir um novo hábito no banco de dados
   Future<int> insertHabit(Map<String, dynamic> row) async {
@@ -67,5 +90,32 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> queryAllHabits() async {
     Database db = await instance.database;
     return await db.query(tableHabitos, orderBy: "id DESC");
+  }
+
+  // Métodos CRUD para registro de progresso
+  // Insere um registro de progresso
+  Future<void> insertRegistro(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    await db.insert(tableRegistros, row);
+  }
+
+  // Deleta um registro de progresso para um hábito em uma data específica
+  Future<void> deleteRegistro(int habitoId, String data) async {
+    Database db = await instance.database;
+    await db.delete(
+      tableRegistros,
+      where: 'habitoId = ? AND data = ?',
+      whereArgs: [habitoId, data],
+    );
+  }
+
+  // Busca todos os registros de uma data específica
+  Future<List<Map<String, dynamic>>> queryRegistrosPorData(String data) async {
+    Database db = await instance.database;
+    return await db.query(
+      tableRegistros,
+      where: 'data = ?',
+      whereArgs: [data],
+    );
   }
 }

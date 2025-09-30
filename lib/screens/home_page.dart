@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:habitflow/data/database/database_helper.dart';
 import 'package:habitflow/data/models/habito_model.dart';
+import 'package:habitflow/data/models/registro_progresso_model.dart';
 import 'package:habitflow/screens/add_habit_screen.dart';
 import 'package:habitflow/utils/app_colors.dart';
 import 'package:habitflow/widgets/habit_card.dart';
+
+// Classe auxiliar
+class HabitoComProgresso {
+  final Habito habito;
+  bool concluidoHoje;
+
+  HabitoComProgresso({
+    required this.habito,
+    required this.concluidoHoje,
+  });
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,27 +25,70 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<List<Habito>> _habitsFuture;
+  List<HabitoComProgresso>? _habitosComProgresso;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadHabits();
+    _loadData();
   }
 
-  void _loadHabits() {
+  String get hojeFormatado {
+    return DateTime.now().toIso8601String().substring(0, 10);
+  }
+
+  Future<void> _loadData() async {
+    // Busca os dados do banco
+    final habitsData = await DatabaseHelper.instance.queryAllHabits();
+    final registrosData =
+        await DatabaseHelper.instance.queryRegistrosPorData(hojeFormatado);
+    //Converte para map
+    final allHabits = habitsData.map((map) => Habito.fromMap(map)).toList();
+    final completedTodayIds =
+        registrosData.map((map) => map['habitoId'] as int).toSet();
+
+    // Atualiza o estado da tela com os dados carregados
     setState(() {
-      _habitsFuture = DatabaseHelper.instance.queryAllHabits().then((maps) {
-        return maps.map((map) => Habito.fromMap(map)).toList();
-      });
+      _habitosComProgresso = allHabits.map((habito) {
+        return HabitoComProgresso(
+          habito: habito,
+          concluidoHoje: completedTodayIds.contains(habito.id),
+        );
+      }).toList();
+      _isLoading = false; // Terminou de carregar
     });
+  }
+
+  // Função ckeckbox -> clicado
+  Future<void> _onCheckboxChanged(
+      bool? newValue, HabitoComProgresso item) async {
+    if (item.habito.id == null) return;
+
+    setState(() {
+      item.concluidoHoje = newValue ?? false;
+    });
+
+    if (newValue == true) {
+      // Se marcou -> insere novo registro
+      final registro =
+          RegistroProgresso(habitoId: item.habito.id!, data: DateTime.now());
+      await DatabaseHelper.instance.insertRegistro(registro.toMap());
+    } else {
+      // Se desmarcou -> deleta o registro
+      await DatabaseHelper.instance
+          .deleteRegistro(item.habito.id!, hojeFormatado);
+    }
   }
 
   void _navigateToAddHabit() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const AddHabitScreen()),
     );
-    _loadHabits();
+    setState(() {
+      _isLoading = true;
+    });
+    _loadData();
   }
 
   @override
@@ -43,75 +98,32 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Seus Hábitos de Hoje'),
         centerTitle: true,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // CABEÇALHO COM A DATA
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Quinta-feira, 25 de Setembro', // Data de exemplo
-              style: TextStyle(
-                color: AppColors.graphite.withOpacity(0.8),
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          // --- LISTA DE HÁBITOS ---
-          Expanded(
-            // USANDO O FUTUREBUILDER:
-            // Este widget constrói a interface com base no estado da nossa 'Future'.
-            child: FutureBuilder<List<Habito>>(
-              future: _habitsFuture,
-              builder: (context, snapshot) {
-                // 1. Enquanto os dados estão carregando:
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                // 2. Se ocorrer um erro:
-                else if (snapshot.hasError) {
-                  return Center(child: Text("Erro: ${snapshot.error}"));
-                }
-                // 3. Se os dados chegarem com sucesso, mas a lista estiver vazia:
-                else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "Você ainda não tem hábitos.\nClique no '+' para adicionar o primeiro!",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: AppColors.graphite),
-                    ),
-                  );
-                }
-                // 4. Se os dados chegarem com sucesso e a lista não estiver vazia:
-                else {
-                  final habits = snapshot.data!;
-                  return ListView.builder(
-                    itemCount: habits.length,
-                    itemBuilder: (context, index) {
-                      final habit = habits[index];
-                      return HabitCard(
-                        habitName: habit.nome,
-                        description: habit.descricao,
-                        // Ícone de exemplo por enquanto
-                        icon: Icons.check_circle_outline,
-                        // Estado do checkbox de exemplo por enquanto
-                        isCompleted: false,
-                        onChanged: (newValue) {
-                          // Lógica para atualizar o progresso virá aqui.
-                        },
-                      );
-                    },
-                  );
-                }
-              },
-            ),
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _habitosComProgresso == null || _habitosComProgresso!.isEmpty
+              ? const Center(
+                  child: Text(
+                    "Você ainda não tem hábitos.\nClique no '+' para adicionar o primeiro!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, color: AppColors.graphite),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _habitosComProgresso!.length,
+                  itemBuilder: (context, index) {
+                    final item = _habitosComProgresso![index];
+                    return HabitCard(
+                      habitName: item.habito.nome,
+                      description: item.habito.descricao,
+                      icon: Icons.check_circle_outline,
+                      isCompleted: item.concluidoHoje,
+                      onChanged: (newValue) =>
+                          _onCheckboxChanged(newValue, item),
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddHabit, // Chama a nova função de navegação
+        onPressed: _navigateToAddHabit,
         tooltip: 'Adicionar Hábito',
         child: const Icon(Icons.add),
       ),
