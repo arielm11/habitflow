@@ -1,7 +1,8 @@
+// lib/widgets/habit_card.dart
+
 import 'package:flutter/material.dart';
 import 'package:habitflow/utils/app_colors.dart';
 
-// Card de Hábito
 class HabitCard extends StatelessWidget {
   final String habitName;
   final String? description;
@@ -20,14 +21,14 @@ class HabitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // É apenas o nosso Card original, sem nenhuma funcionalidade de deslizar.
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        // Titulo
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: ListTile(
           leading: Icon(
             icon,
@@ -45,10 +46,9 @@ class HabitCard extends StatelessWidget {
           subtitle: (description != null && description!.isNotEmpty)
               ? Text(
                   description!,
-                  style: TextStyle(color: AppColors.graphite.withOpacity(0.6)),
+                  style: TextStyle(color: AppColors.graphite.withOpacity(0.8)),
                 )
               : null,
-          // Checkbox
           trailing: Checkbox(
             value: isCompleted,
             onChanged: onChanged,

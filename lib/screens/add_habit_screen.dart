@@ -1,12 +1,12 @@
-// lib/screens/add_habit_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:habitflow/data/database/database_helper.dart';
 import 'package:habitflow/data/models/habito_model.dart';
 import 'package:habitflow/utils/app_colors.dart';
 
 class AddHabitScreen extends StatefulWidget {
-  const AddHabitScreen({super.key});
+  final Habito? habito;
+
+  const AddHabitScreen({super.key, this.habito});
 
   @override
   State<AddHabitScreen> createState() => _AddHabitScreenState();
@@ -21,21 +21,41 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   // Começa com 'Feito/Não Feito' como padrão.
   String _selectedGoalType = 'Feito/Não Feito';
 
+  // Variável para verificar se está editando um hábito ou não
+  bool get _isEditing => widget.habito != null;
+
+  void initState() {
+    super.initState();
+
+    if (_isEditing) {
+      _nameController.text = widget.habito!.nome;
+      _descriptionController.text = widget.habito!.descricao ?? '';
+      _selectedGoalType = widget.habito!.tipoMeta;
+    }
+  }
+
   // Função para salvar o hábito no banco de dados.
   Future<void> _saveHabit() async {
     if (_formKey.currentState!.validate()) {
-      final newHabit = Habito(
-        nome: _nameController.text,
-        descricao: _descriptionController.text,
-        tipoMeta: _selectedGoalType,
-        ativo: true, // Todo novo hábito começa como ativo.
-      );
+      if (_isEditing) {
+        final updatedHabit = Habito(
+          id: widget.habito!.id,
+          nome: _nameController.text,
+          descricao: _descriptionController.text,
+          tipoMeta: _selectedGoalType,
+          ativo: widget.habito!.ativo,
+        );
+        await DatabaseHelper.instance.updateHabit(updatedHabit.toMap());
+      } else {
+        final newHabit = Habito(
+          nome: _nameController.text,
+          descricao: _descriptionController.text,
+          tipoMeta: _selectedGoalType,
+          ativo: true, // Todo novo hábito começa como ativo.
+        );
+        await DatabaseHelper.instance.insertHabit(newHabit.toMap());
+      }
 
-      // Usamos nosso DatabaseHelper para inserir o hábito.
-      await DatabaseHelper.instance.insertHabit(newHabit.toMap());
-
-      // Se o widget ainda estiver na "árvore" de widgets (ou seja, a tela ainda existe),
-      // voltamos para a tela anterior.
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -46,7 +66,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Adicionar Novo Hábito'),
+        title: Text(_isEditing ? 'Editar Hábito' : 'Adicionar Novo Hábito'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -114,7 +134,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Salvar Hábito'),
+                  child:
+                      Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
                 ),
               ],
             ),

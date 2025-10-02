@@ -43,12 +43,15 @@ class _HomePageState extends State<HomePage> {
     final habitsData = await DatabaseHelper.instance.queryAllHabits();
     final registrosData =
         await DatabaseHelper.instance.queryRegistrosPorData(hojeFormatado);
+
     //Converte para map
     final allHabits = habitsData.map((map) => Habito.fromMap(map)).toList();
     final completedTodayIds =
         registrosData.map((map) => map['habitoId'] as int).toSet();
 
     // Atualiza o estado da tela com os dados carregados
+    if (!mounted) return;
+
     setState(() {
       _habitosComProgresso = allHabits.map((habito) {
         return HabitoComProgresso(
@@ -81,6 +84,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // --- FUNÇÃO PARA ADICIONAR UM HÁBITO ---
   void _navigateToAddHabit() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const AddHabitScreen()),
@@ -89,6 +93,71 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
     _loadData();
+  }
+
+  // --- FUNÇÃO PARA EDITAR UM HÁBITO ---
+  void _navigateToEditHabit(Habito habito) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddHabitScreen(habito: habito),
+      ),
+    );
+
+    setState(() {
+      _isLoading = true;
+    });
+    _loadData();
+  }
+
+  // --- FUNÇÃO PARA EXCLUIR UM HÁBITO ---
+  Future<bool> _confirmDeleteHabit(Habito habito) async {
+    if (habito.id == null) return false;
+
+    // Diálogo de confirmação
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: Text(
+              'Você tem certeza que deseja excluir o hábito "${habito.nome}"? Esta ação não pode ser desfeita.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Excluir'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Se o usuário confirmou, procede com a exclusão
+    if (shouldDelete == true) {
+      await DatabaseHelper.instance.deleteHabit(habito.id!);
+
+      // Atualiza a lista localmente para uma resposta visual instantânea
+      setState(() {
+        _habitosComProgresso
+            ?.removeWhere((item) => item.habito.id == habito.id);
+      });
+
+      // Mostra uma confirmação
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hábito "${habito.nome}" excluído.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return true;
+    }
+    return false;
   }
 
   @override
@@ -112,19 +181,60 @@ class _HomePageState extends State<HomePage> {
                   itemCount: _habitosComProgresso!.length,
                   itemBuilder: (context, index) {
                     final item = _habitosComProgresso![index];
-                    return HabitCard(
-                      habitName: item.habito.nome,
-                      description: item.habito.descricao,
-                      icon: Icons.check_circle_outline,
-                      isCompleted: item.concluidoHoje,
-                      onChanged: (newValue) =>
-                          _onCheckboxChanged(newValue, item),
+                    return Dismissible(
+                      key: Key(item.habito.id.toString()),
+                      background: Container(
+                        color: AppColors.seaGreen,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.edit, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('Editar',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      secondaryBackground: Container(
+                        color: Colors.redAccent,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text('Excluir',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                            SizedBox(width: 8),
+                            Icon(Icons.delete, color: Colors.white),
+                          ],
+                        ),
+                      ),
+                      confirmDismiss: (direction) async {
+                        if (direction == DismissDirection.startToEnd) {
+                          _navigateToEditHabit(item.habito);
+                          return false;
+                        } else {
+                          return await _confirmDeleteHabit(item.habito);
+                        }
+                      },
+                      child: HabitCard(
+                        habitName: item.habito.nome,
+                        description: item.habito.descricao,
+                        icon: Icons.check_circle_outline,
+                        isCompleted: item.concluidoHoje,
+                        onChanged: (newValue) =>
+                            _onCheckboxChanged(newValue, item),
+                      ),
                     );
                   },
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToAddHabit,
-        tooltip: 'Adicionar Hábito',
         child: const Icon(Icons.add),
       ),
     );
