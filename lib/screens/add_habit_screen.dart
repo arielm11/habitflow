@@ -24,6 +24,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   // Variável para verificar se está editando um hábito ou não
   bool get _isEditing => widget.habito != null;
 
+  @override
   void initState() {
     super.initState();
 
