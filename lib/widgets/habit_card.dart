@@ -2,18 +2,20 @@
 
 import 'package:flutter/material.dart';
 import 'package:habitflow/utils/app_colors.dart';
+import '../data/models/habito_model.dart';
 
 class HabitCard extends StatelessWidget {
-  final String habitName;
-  final String? description;
+  final Habito habito;
+  // --- ALTERAÇÃO 1: Simplificar o construtor ---
+  // Os campos 'habitName' e 'description' foram removidos
+  // porque já temos essa informação dentro do objeto 'habito'.
   final IconData icon;
   final bool isCompleted;
   final Function(bool?)? onChanged;
 
   const HabitCard({
     super.key,
-    required this.habitName,
-    this.description,
+    required this.habito, // Agora só precisamos do objeto completo
     required this.icon,
     required this.isCompleted,
     required this.onChanged,
@@ -21,7 +23,13 @@ class HabitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // É apenas o nosso Card original, sem nenhuma funcionalidade de deslizar.
+    // A sua lógica está perfeita e será mantida.
+    String tituloExibido = habito.nome;
+    if (habito.metaValor != null && habito.metaValor!.isNotEmpty) {
+      // O "0/" é um placeholder para o progresso futuro
+      tituloExibido = '${habito.nome} (0/${habito.metaValor})';
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: Colors.white,
@@ -35,17 +43,19 @@ class HabitCard extends StatelessWidget {
             color: AppColors.seaGreen,
             size: 32,
           ),
+          // --- ALTERAÇÃO 2: Usar a variável correta no título ---
           title: Text(
-            habitName,
+            tituloExibido, // Usamos a variável que criamos com a lógica da meta.
             style: const TextStyle(
               color: AppColors.graphite,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
           ),
-          subtitle: (description != null && description!.isNotEmpty)
+          // --- ALTERAÇÃO 3: Obter a descrição diretamente do objeto 'habito' ---
+          subtitle: (habito.descricao != null && habito.descricao!.isNotEmpty)
               ? Text(
-                  description!,
+                  habito.descricao!, // Usamos a descrição que vem do objeto.
                   style: TextStyle(color: AppColors.graphite.withOpacity(0.8)),
                 )
               : null,

@@ -16,34 +16,61 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _metaValorController = TextEditingController();
+  final _metaUnidadecontroller = TextEditingController();
 
-  // Variável para guardar o tipo de meta selecionado.
-  // Começa com 'Feito/Não Feito' como padrão.
   String _selectedGoalType = 'Feito/Não Feito';
-
-  // Variável para verificar se está editando um hábito ou não
   bool get _isEditing => widget.habito != null;
 
   @override
   void initState() {
     super.initState();
-
     if (_isEditing) {
       _nameController.text = widget.habito!.nome;
       _descriptionController.text = widget.habito!.descricao ?? '';
       _selectedGoalType = widget.habito!.tipoMeta;
+      final metaValorExistente = widget.habito!.metaValor;
+      if (metaValorExistente != null && metaValorExistente.isNotEmpty) {
+        final parts = metaValorExistente.split(' ');
+        if (parts.isNotEmpty) {
+          _metaValorController.text = parts.first;
+        }
+        if (parts.length > 1) {
+          _metaUnidadecontroller.text = parts.sublist(1).join(' ');
+        }
+      }
     }
   }
 
-  // Função para salvar o hábito no banco de dados.
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _metaValorController.dispose();
+    _metaUnidadecontroller.dispose();
+    super.dispose();
+  }
+
   Future<void> _saveHabit() async {
     if (_formKey.currentState!.validate()) {
+      // --- CORREÇÃO: Lógica para preparar o metaValor antes de salvar ---
+      String? metaValorFinal;
+      if (_selectedGoalType == 'Meta Numérica' || _selectedGoalType == 'Duração') {
+        final valor = _metaValorController.text.trim();
+        final unidade = _metaUnidadecontroller.text.trim();
+        if (valor.isNotEmpty && unidade.isNotEmpty) {
+          metaValorFinal = '$valor $unidade';
+        }
+      }
+      // --- FIM DA CORREÇÃO ---
+
       if (_isEditing) {
         final updatedHabit = Habito(
           id: widget.habito!.id,
           nome: _nameController.text,
           descricao: _descriptionController.text,
           tipoMeta: _selectedGoalType,
+          metaValor: metaValorFinal, // PASSANDO O VALOR AQUI
           ativo: widget.habito!.ativo,
         );
         await DatabaseHelper.instance.updateHabit(updatedHabit.toMap());
@@ -52,7 +79,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           nome: _nameController.text,
           descricao: _descriptionController.text,
           tipoMeta: _selectedGoalType,
-          ativo: true, // Todo novo hábito começa como ativo.
+          metaValor: metaValorFinal, // E AQUI TAMBÉM
+          ativo: true,
         );
         await DatabaseHelper.instance.insertHabit(newHabit.toMap());
       }
@@ -85,7 +113,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     hintText: 'Ex: Beber água, Ler um livro',
                     border: OutlineInputBorder(),
                   ),
-                  // Validador para garantir que o campo não está vazio.
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, insira um nome para o hábito.';
@@ -94,7 +121,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-
                 // --- CAMPO DE TEXTO PARA A DESCRIÇÃO DO HABITO ---
                 TextFormField(
                   controller: _descriptionController,
@@ -105,10 +131,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
                 // --- SELETOR PARA O TIPO DE META ---
-                const Text('Qual o tipo de meta?',
-                    style: TextStyle(fontSize: 16)),
+                const Text('Qual o tipo de meta?', style: TextStyle(fontSize: 16)),
                 DropdownButton<String>(
                   value: _selectedGoalType,
                   isExpanded: true,
@@ -125,8 +149,53 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
+                // --- PARTE FALTANTE: Adicionar os campos condicionais para a meta ---
+                Visibility(
+                  visible: _selectedGoalType == 'Meta Numérica' || _selectedGoalType == 'Duração',
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _metaValorController,
+                        decoration: const InputDecoration(
+                          labelText: 'Valor da Meta',
+                          hintText: 'Ex: 10, 2, 500',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (_selectedGoalType != 'Feito/Não Feito') {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor, insira um valor.';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _metaUnidadecontroller,
+                        decoration: const InputDecoration(
+                          labelText: 'Unidade da Meta',
+                          hintText: 'Ex: páginas, litros, minutos',
+                          border: OutlineInputBorder(),
+                        ),
+                         validator: (value) {
+                          if (_selectedGoalType != 'Feito/Não Feito') {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor, insira uma unidade.';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                // --- FIM DA PARTE FALTANTE ---
+
+                const SizedBox(height: 32),
                 // --- BOTÃO DE SALVAR ---
                 ElevatedButton(
                   onPressed: _saveHabit,
@@ -135,8 +204,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child:
-                      Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
+                  child: Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
                 ),
               ],
             ),
