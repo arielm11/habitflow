@@ -222,9 +222,9 @@ class _HomePageState extends State<HomePage> {
                           return await _confirmDeleteHabit(item.habito);
                         }
                       },
+                      // --- AQUI ESTÁ A ÚNICA ALTERAÇÃO REALIZADA ---
                       child: HabitCard(
-                        habitName: item.habito.nome,
-                        description: item.habito.descricao,
+                        habito: item.habito, // Passa o objeto 'habito' completo
                         icon: Icons.check_circle_outline,
                         isCompleted: item.concluidoHoje,
                         onChanged: (newValue) =>
