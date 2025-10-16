@@ -1,3 +1,5 @@
+// lib/screens/add_habit_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:habitflow/data/database/database_helper.dart';
 import 'package:habitflow/data/models/habito_model.dart';
@@ -16,35 +18,96 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _metaValorController = TextEditingController();
+  final _metaUnidadecontroller = TextEditingController();
 
-  // Variável para guardar o tipo de meta selecionado.
-  // Começa com 'Feito/Não Feito' como padrão.
   String _selectedGoalType = 'Feito/Não Feito';
-
-  // Variável para verificar se está editando um hábito ou não
   bool get _isEditing => widget.habito != null;
+
+  DateTime? _dataInicio;
+  DateTime? _dataTermino;
 
   @override
   void initState() {
     super.initState();
-
     if (_isEditing) {
       _nameController.text = widget.habito!.nome;
       _descriptionController.text = widget.habito!.descricao ?? '';
       _selectedGoalType = widget.habito!.tipoMeta;
+      final metaValorExistente = widget.habito!.metaValor;
+      if (metaValorExistente != null && metaValorExistente.isNotEmpty) {
+        final parts = metaValorExistente.split(' ');
+        if (parts.isNotEmpty) {
+          _metaValorController.text = parts.first;
+        }
+        if (parts.length > 1) {
+          _metaUnidadecontroller.text = parts.sublist(1).join(' ');
+        }
+      }
+      
+      if (widget.habito!.data_inicio != null && widget.habito!.data_inicio!.isNotEmpty) {
+        _dataInicio = DateTime.parse(widget.habito!.data_inicio!);
+      }
+      if (widget.habito!.data_termino != null && widget.habito!.data_termino!.isNotEmpty) {
+        _dataTermino = DateTime.parse(widget.habito!.data_termino!);
+      }
     }
   }
 
-  // Função para salvar o hábito no banco de dados.
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _metaValorController.dispose();
+    _metaUnidadecontroller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selecionarData(BuildContext context, {required bool isInicio}) async {
+    final DateTime? dataSelecionada = await showDatePicker(
+      context: context,
+      initialDate: (isInicio ? _dataInicio : _dataTermino) ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2050),
+    );
+
+    if (dataSelecionada != null) {
+      setState(() {
+        if (isInicio) {
+          _dataInicio = dataSelecionada;
+        } else {
+          _dataTermino = dataSelecionada;
+        }
+      });
+    }
+  }
+
   Future<void> _saveHabit() async {
     if (_formKey.currentState!.validate()) {
+      String? metaValorFinal;
+      if (_selectedGoalType == 'Meta Numérica' || _selectedGoalType == 'Duração') {
+        final valor = _metaValorController.text.trim();
+        final unidade = _metaUnidadecontroller.text.trim();
+        if (valor.isNotEmpty && unidade.isNotEmpty) {
+          metaValorFinal = '$valor $unidade';
+        }
+      }
+      
+      final String dataInicioFormatada = (_dataInicio ?? DateTime.now())
+          .toIso8601String().substring(0, 10);
+      final String? dataTerminoFormatada = _dataTermino
+          ?.toIso8601String().substring(0, 10);
+
       if (_isEditing) {
         final updatedHabit = Habito(
           id: widget.habito!.id,
           nome: _nameController.text,
           descricao: _descriptionController.text,
           tipoMeta: _selectedGoalType,
+          metaValor: metaValorFinal,
           ativo: widget.habito!.ativo,
+          data_inicio: dataInicioFormatada,
+          data_termino: dataTerminoFormatada,
         );
         await DatabaseHelper.instance.updateHabit(updatedHabit.toMap());
       } else {
@@ -52,7 +115,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           nome: _nameController.text,
           descricao: _descriptionController.text,
           tipoMeta: _selectedGoalType,
-          ativo: true, // Todo novo hábito começa como ativo.
+          metaValor: metaValorFinal,
+          ativo: true,
+          data_inicio: dataInicioFormatada,
+          data_termino: dataTerminoFormatada,
         );
         await DatabaseHelper.instance.insertHabit(newHabit.toMap());
       }
@@ -85,7 +151,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     hintText: 'Ex: Beber água, Ler um livro',
                     border: OutlineInputBorder(),
                   ),
-                  // Validador para garantir que o campo não está vazio.
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, insira um nome para o hábito.';
@@ -94,7 +159,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-
                 // --- CAMPO DE TEXTO PARA A DESCRIÇÃO DO HABITO ---
                 TextFormField(
                   controller: _descriptionController,
@@ -105,10 +169,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
                 // --- SELETOR PARA O TIPO DE META ---
-                const Text('Qual o tipo de meta?',
-                    style: TextStyle(fontSize: 16)),
+                const Text('Qual o tipo de meta?', style: TextStyle(fontSize: 16)),
                 DropdownButton<String>(
                   value: _selectedGoalType,
                   isExpanded: true,
@@ -125,8 +187,80 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
+                // --- CAMPOS CONDICIONAIS PARA A META ---
+                Visibility(
+                  visible: _selectedGoalType == 'Meta Numérica' || _selectedGoalType == 'Duração',
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _metaValorController,
+                        decoration: const InputDecoration(
+                          labelText: 'Valor da Meta',
+                          hintText: 'Ex: 10, 2, 500',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (_selectedGoalType != 'Feito/Não Feito') {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor, insira um valor.';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _metaUnidadecontroller,
+                        decoration: const InputDecoration(
+                          labelText: 'Unidade da Meta',
+                          hintText: 'Ex: páginas, litros, minutos',
+                          border: OutlineInputBorder(),
+                        ),
+                          validator: (value) {
+                          if (_selectedGoalType != 'Feito/Não Feito') {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor, insira uma unidade.';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                // --- SEÇÃO DE SELEÇÃO DE DATAS ---
+                const SizedBox(height: 24),
+                const Text('Período do Hábito (opcional)', style: TextStyle(fontSize: 16)),
+                
+                ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('Data de Início'),
+                  subtitle: Text(_dataInicio == null 
+                      ? 'Hoje' 
+                      : '${_dataInicio!.day}/${_dataInicio!.month}/${_dataInicio!.year}'),
+                  onTap: () => _selecionarData(context, isInicio: true),
+                ),
+                
+                ListTile(
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: const Text('Data de Término'),
+                  subtitle: Text(_dataTermino == null 
+                      ? 'Sem data final' 
+                      : '${_dataTermino!.day}/${_dataTermino!.month}/${_dataTermino!.year}'),
+                  trailing: _dataTermino != null 
+                      ? IconButton(
+                          icon: const Icon(Icons.clear), 
+                          onPressed: () => setState(() => _dataTermino = null),
+                        ) 
+                      : null,
+                  onTap: () => _selecionarData(context, isInicio: false),
+                ),
+
+                const SizedBox(height: 32),
                 // --- BOTÃO DE SALVAR ---
                 ElevatedButton(
                   onPressed: _saveHabit,
@@ -135,8 +269,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child:
-                      Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
+                  child: Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
                 ),
               ],
             ),
