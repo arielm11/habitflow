@@ -8,8 +8,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final prefs = await SharedPreferences.getInstance();
-  final bool hasSeenOnboarding = prefs.getBool('onboarding_complete') ?? false;
-
+  final bool hasSeenOnboarding = prefs.getBool('hasSeenOnBoarding') ?? false;
   runApp(HabitFlowApp(hasSeenOnboarding: hasSeenOnboarding));
 }
 

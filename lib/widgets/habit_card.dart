@@ -6,10 +6,11 @@ import 'dart:math'; // Precisamos da biblioteca 'math' para usar a função 'min
 class HabitCard extends StatelessWidget {
   // --- NOVOS PARÂMETROS ---
   final Habito habito;
-  final bool isCompleted;      // Continua sendo usado para hábitos 'Feito/Não Feito'
-  final double progress;       // Novo! Recebe o progresso atual para metas numéricas
-  final Function(bool?)? onCheckboxChanged; // Nome mais claro para o callback do checkbox
-  final VoidCallback? onTap;    // Ação de clique para abrir o pop-up
+  final bool isCompleted; // Continua sendo usado para hábitos 'Feito/Não Feito'
+  final double progress; // Novo! Recebe o progresso atual para metas numéricas
+  final Function(bool?)?
+      onCheckboxChanged; // Nome mais claro para o callback do checkbox
+  final VoidCallback? onTap; // Ação de clique para abrir o pop-up
 
   const HabitCard({
     super.key,
@@ -43,7 +44,9 @@ class HabitCard extends StatelessWidget {
     }
     // Pega a primeira parte da string (o número), substitui vírgula por ponto
     // para garantir a conversão, e tenta converter para double.
-    return double.tryParse(habito.metaValor!.split(' ').first.replaceAll(',', '.')) ?? 1.0;
+    final valorString =
+        habito.metaValor?.split(' ').first.replaceAll(',', '.') ?? '1.0';
+    return double.tryParse(valorString) ?? 1.0;
   }
 
   @override
@@ -51,11 +54,12 @@ class HabitCard extends StatelessWidget {
     // --- LÓGICA DE CONTROLE VISUAL ---
 
     // 1. Determina se o hábito é numérico ou simples.
-    final bool isNumericGoal = habito.tipoMeta == 'Meta Numérica' || habito.tipoMeta == 'Duração';
-    
+    final bool isNumericGoal =
+        habito.tipoMeta == 'Meta Numérica' || habito.tipoMeta == 'Duração';
+
     // 2. Calcula o alvo da meta.
     final double metaTarget = isNumericGoal ? _getMetaValue() : 1.0;
-    
+
     // 3. Verifica se a meta foi concluída.
     final bool goalMet = isNumericGoal ? (progress >= metaTarget) : isCompleted;
 
@@ -100,7 +104,9 @@ class HabitCard extends StatelessWidget {
                   )
                 else
                   Text(
-                    goalMet ? "Meta Concluída!" : "${progress.toStringAsFixed(1)} / ${metaTarget.toStringAsFixed(1)}",
+                    goalMet
+                        ? "Meta Concluída!"
+                        : "${progress.toStringAsFixed(1)} / ${metaTarget.toStringAsFixed(1)}",
                     style: TextStyle(
                       color: dynamicColor,
                       fontWeight: FontWeight.bold,
