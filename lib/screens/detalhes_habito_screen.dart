@@ -8,7 +8,8 @@ import 'package:habitflow/utils/app_colors.dart';
 class DetalhesHabitoScreen extends StatefulWidget {
   final int habitoId;
 
-  const DetalhesHabitoScreen({Key? key, required this.habitoId}) : super(key: key);
+  const DetalhesHabitoScreen({Key? key, required this.habitoId})
+      : super(key: key);
 
   @override
   State<DetalhesHabitoScreen> createState() => _DetalhesHabitoScreenState();
@@ -22,7 +23,8 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
   void initState() {
     super.initState();
     // Ao iniciar a tela, chamamos a função que busca os dados no DatabaseHelper.
-    _dadosProgressoFuture = DatabaseHelper.instance.getDadosProgresso(widget.habitoId);
+    _dadosProgressoFuture =
+        DatabaseHelper.instance.getDadosProgresso(widget.habitoId);
   }
 
   @override
@@ -30,7 +32,7 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes do Hábito'),
-        backgroundColor: AppColors.background,
+        centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _dadosProgressoFuture,
@@ -42,7 +44,8 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
 
           // Se ocorrer um erro na busca.
           if (snapshot.hasError) {
-            return Center(child: Text('Erro ao carregar detalhes: ${snapshot.error}'));
+            return Center(
+                child: Text('Erro ao carregar detalhes: ${snapshot.error}'));
           }
 
           // Se os dados chegarem com sucesso.
@@ -66,7 +69,8 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
                       color: AppColors.graphite,
                     ),
                   ),
-                  if (habito.descricao != null && habito.descricao!.isNotEmpty) ...[
+                  if (habito.descricao != null &&
+                      habito.descricao!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       habito.descricao!,
@@ -79,11 +83,12 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
                   const SizedBox(height: 32),
                   const Divider(),
                   const SizedBox(height: 32),
-                  
+
                   // Card de Progresso
                   Card(
                     elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -91,11 +96,10 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
                           const Text(
                             'PROGRESSO TOTAL',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.graphite,
-                              letterSpacing: 1.2
-                            ),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.graphite,
+                                letterSpacing: 1.2),
                           ),
                           const SizedBox(height: 16),
                           Text.rich(
@@ -123,10 +127,10 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'dias concluídos',
-                             style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.graphite.withOpacity(0.8),
-                              ),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.graphite.withOpacity(0.8),
+                            ),
                           ),
                         ],
                       ),
@@ -141,10 +145,10 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
                       const SizedBox(width: 8),
                       Text(
                         'Período: ${habito.data_inicio} até ${habito.data_termino ?? 'sem data final'}',
-                         style: const TextStyle(
-                            fontSize: 14,
-                            fontStyle: FontStyle.italic,
-                          ),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ],
                   )
