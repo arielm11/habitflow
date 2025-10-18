@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:habitflow/screens/home_page.dart';
+import 'package:habitflow/screens/navigation_screen.dart'; // << IMPORT CORRETO
 import 'package:habitflow/screens/onboarding_screen.dart';
 import 'package:habitflow/utils/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,7 +45,9 @@ class HabitFlowApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // LÓGICA PRINCIPAL
-      home: hasSeenOnboarding ? const HomePage() : const OnboardingScreen(),
+      home: hasSeenOnboarding
+          ? const NavigationScreen()
+          : const OnboardingScreen(), // <--- CORRIGIDO AQUI
     );
   }
 }
