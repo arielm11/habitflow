@@ -8,8 +8,7 @@ import 'package:habitflow/utils/app_colors.dart';
 class DetalhesHabitoScreen extends StatefulWidget {
   final int habitoId;
 
-  const DetalhesHabitoScreen({Key? key, required this.habitoId})
-      : super(key: key);
+  const DetalhesHabitoScreen({super.key, required this.habitoId});
 
   @override
   State<DetalhesHabitoScreen> createState() => _DetalhesHabitoScreenState();
