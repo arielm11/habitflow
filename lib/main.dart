@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:habitflow/screens/navigation_screen.dart'; // << IMPORT CORRETO
+import 'package:habitflow/data/providers/habito_provider.dart'; // <<< 1. IMPORT DO PROVIDER
+import 'package:habitflow/screens/navigation_screen.dart';
 import 'package:habitflow/screens/onboarding_screen.dart';
 import 'package:habitflow/utils/app_colors.dart';
+import 'package:provider/provider.dart'; // <<< 2. IMPORT DO PACOTE PROVIDER
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -9,13 +11,21 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final bool hasSeenOnboarding = prefs.getBool('hasSeenOnBoarding') ?? false;
-  runApp(HabitFlowApp(hasSeenOnboarding: hasSeenOnboarding));
+
+  // --- MELHORIA APLICADA AQUI ---
+  // Envolvemos o app com o ChangeNotifierProvider para que o HabitoProvider
+  // fique disponível em toda a árvore de widgets.
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => HabitoProvider(),
+      child: HabitFlowApp(hasSeenOnboarding: hasSeenOnboarding),
+    ),
+  );
 }
 
 class HabitFlowApp extends StatelessWidget {
   final bool hasSeenOnboarding;
 
-  // Construtor da classe
   const HabitFlowApp({super.key, required this.hasSeenOnboarding});
 
   @override
@@ -44,10 +54,9 @@ class HabitFlowApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      // LÓGICA PRINCIPAL
       home: hasSeenOnboarding
           ? const NavigationScreen()
-          : const OnboardingScreen(), // <--- CORRIGIDO AQUI
+          : const OnboardingScreen(),
     );
   }
 }

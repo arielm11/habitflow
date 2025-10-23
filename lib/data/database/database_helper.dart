@@ -186,6 +186,16 @@ class DatabaseHelper {
     return dataFinalConsiderada.difference(dataInicio).inDays + 1;
   }
 
+Future<List<Map<String, dynamic>>> getHabitosDePeriodo() async {
+  Database db = await instance.database;
+  // A condição 'data_inicio IS NOT NULL' filtra apenas os hábitos que nos interessam.
+  return await db.query(
+    tableHabitos,
+    where: 'data_inicio IS NOT NULL AND data_inicio != ?',
+    whereArgs: [''], // Garante que data_inicio não seja uma string vazia
+    orderBy: "id DESC"
+  );
+}
   /// Orquestra a busca de todos os dados necessários para a tela de detalhes.
   Future<Map<String, dynamic>> getDadosProgresso(int habitoId) async {
     final habito = await getHabitoById(habitoId);
@@ -198,5 +208,8 @@ class DatabaseHelper {
       'concluidos': concluidos,
       'decorridos': decorridos,
     };
+
+
+    
   }
 }
