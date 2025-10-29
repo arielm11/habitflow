@@ -34,7 +34,9 @@ class ProgressoHabitoCard extends StatelessWidget {
         child: Row(
           children: [
             // Ícone do Hábito
-            Icon(icon, size: 40, color: isCompleto ? AppColors.seaGreen : AppColors.teal),
+            Icon(icon,
+                size: 40,
+                color: isCompleto ? AppColors.seaGreen : AppColors.teal),
             const SizedBox(width: 16),
 
             // Coluna com os textos
@@ -79,13 +81,13 @@ class ProgressoHabitoCard extends StatelessWidget {
               onChanged: null, // Deixamos nulo para ser apenas visual
               shape: const CircleBorder(),
               activeColor: AppColors.seaGreen,
-              // Usamos `fillColor` para controlar a cor em ambos os estados
-              fillColor: MaterialStateProperty.resolveWith<Color>(
-                (Set<MaterialState> states) {
-                  if (states.contains(MaterialState.selected)) {
-                    return AppColors.seaGreen; // Cor quando selecionado
+              fillColor: WidgetStateProperty.resolveWith<Color>(
+                (Set<WidgetState> states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.seaGreen;
                   }
-                  return AppColors.graphite.withOpacity(0.2); // Cor quando não selecionado
+                  return AppColors.graphite
+                      .withOpacity(0.2); // Cor quando não selecionado
                 },
               ),
             )

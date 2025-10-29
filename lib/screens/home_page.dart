@@ -12,11 +12,13 @@ import 'package:provider/provider.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  // --- Nenhuma alteração nesta seção ---
   void _navigateToAddHabit(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const AddHabitScreen()),
     );
+
+    if (!context.mounted) return;
+
     context.read<HabitoProvider>().carregarTodosOsDados();
   }
 
@@ -24,6 +26,9 @@ class HomePage extends StatelessWidget {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => AddHabitScreen(habito: habito)),
     );
+
+    if (!context.mounted) return;
+
     context.read<HabitoProvider>().carregarTodosOsDados();
   }
 
@@ -53,32 +58,33 @@ class HomePage extends StatelessWidget {
     );
 
     if (shouldDelete == true) {
+      // ignore: use_build_context_synchronously
       await context.read<HabitoProvider>().deletarHabito(habito.id!);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hábito "${habito.nome}" excluído.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      if (!context.mounted) return true;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Hábito "${habito.nome}" excluído.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+
       return true;
     }
+
     return false;
   }
-  // --- Fim da seção sem alterações ---
 
   /// Mostra um pop-up para o usuário ATUALIZAR o progresso.
   Future<void> _showUpdateProgressDialog(
     BuildContext context,
     Habito habito,
-    double progressoAtual, // 1. Recebe o progresso atual
+    double progressoAtual,
   ) async {
     final formKey = GlobalKey<FormState>();
     final progressController = TextEditingController();
 
-    // 2. Pré-preenche o campo com o valor que já existe
     progressController.text =
         progressoAtual.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
 
@@ -92,7 +98,8 @@ class HomePage extends StatelessWidget {
             child: TextFormField(
               controller: progressController,
               autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Novo valor'),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -124,24 +131,13 @@ class HomePage extends StatelessWidget {
       },
     );
 
-    //
-    // --- AJUSTE FEITO AQUI ---
-    //
-    // 7. LÓGICA DE ATUALIZAÇÃO
-    // Comparamos o novoValor (o que foi digitado) com o progressoAtual
-    // e SÓ atualizamos se o valor for diferente.
+    if (!context.mounted) return;
+
     if (novoValor != null && novoValor != progressoAtual && habito.id != null) {
-      
-      // Pega o provider uma vez para evitar múltiplas chamadas 'read'
       final provider = context.read<HabitoProvider>();
 
-      // 8. SIMULA A ATUALIZAÇÃO usando os métodos que você já tem:
-
-      // Primeiro, zera o progresso atual do dia
       await provider.deletarProgressoDiario(habito.id!);
 
-      // Segundo, registra o novo valor (a menos que o novo valor seja 0,
-      // pois nesse caso só queríamos zerar, o que já foi feito)
       if (novoValor > 0) {
         await provider.registrarProgressoDiario(habito.id!, novoValor);
       }
@@ -150,7 +146,6 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Conecta à fonte de dados central: o HabitoProvider.
     final provider = context.watch<HabitoProvider>();
     final habitosDoDia = provider.habitosDoDia;
 
@@ -174,16 +169,15 @@ class HomePage extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final item = habitosDoDia[index];
 
-                    // --- Nenhuma alteração nesta seção de lógica ---
                     final bool isNumeric =
                         item.habito.tipoMeta != 'Feito/Não Feito';
                     final metaTarget = isNumeric
                         ? (double.tryParse(item.habito.metaValor
-                                ?.split(' ')
-                                .first
-                                .replaceAll(',', '.') ??
-                            '1.0') ??
-                        1.0)
+                                    ?.split(' ')
+                                    .first
+                                    .replaceAll(',', '.') ??
+                                '1.0') ??
+                            1.0)
                         : 1.0;
                     final bool goalMet = isNumeric
                         ? (item.progressoAtual >= metaTarget)
@@ -194,25 +188,25 @@ class HomePage extends StatelessWidget {
                     final BorderSide borderSide = goalMet
                         ? BorderSide(color: AppColors.seaGreen, width: 1.5)
                         : BorderSide.none;
-                    // --- Fim da seção sem alterações ---
 
                     return GestureDetector(
                       onLongPress: () {
-                        // ... (sem alterações)
                         if (item.habito.id != null) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    DetalhesHabitoScreen(
-                                        habitoId: item.habito.id!)),
-                          ).then((_) =>
-                              context.read<HabitoProvider>().carregarTodosOsDados());
+                                builder: (context) => DetalhesHabitoScreen(
+                                    habitoId: item.habito.id!)),
+                          ).then((_) {
+                            if (!context.mounted) return;
+                            context
+                                .read<HabitoProvider>()
+                                .carregarTodosOsDados();
+                          });
                         }
                       },
                       child: Dismissible(
                         key: Key(item.habito.id.toString()),
-                        // ... (backgrounds sem alterações) ...
                         background: Container(
                           color: AppColors.seaGreen,
                           alignment: Alignment.centerLeft,
@@ -242,7 +236,6 @@ class HomePage extends StatelessWidget {
                               ]),
                         ),
                         confirmDismiss: (direction) async {
-                          // ... (sem alterações)
                           if (direction == DismissDirection.startToEnd) {
                             _navigateToEditHabit(context, item.habito);
                             return false;
@@ -265,7 +258,6 @@ class HomePage extends StatelessWidget {
                             isCompleted: item.concluidoHoje,
                             progress: item.progressoAtual,
                             onCheckboxChanged: (newValue) {
-                              // ... (sem alterações na lógica do checkbox)
                               if (item.habito.id == null) return;
                               if (newValue == true) {
                                 context
@@ -278,16 +270,12 @@ class HomePage extends StatelessWidget {
                                     .deletarProgressoDiario(item.habito.id!);
                               }
                             },
-                            //
-                            // --- Nenhuma alteração aqui, já estava certo ---
-                            //
                             onTap: () {
                               if (item.habito.tipoMeta != 'Feito/Não Feito') {
-                                // Chama a nova função e passa o valor atual
                                 _showUpdateProgressDialog(
                                   context,
                                   item.habito,
-                                  item.progressoAtual, // Passa o valor!
+                                  item.progressoAtual,
                                 );
                               }
                             },

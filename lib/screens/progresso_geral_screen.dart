@@ -1,20 +1,13 @@
 // lib/screens/progresso_geral_screen.dart
 
 import 'package:flutter/material.dart';
-// Importa o pacote de gráficos
-import 'package:fl_chart/fl_chart.dart'; 
-// Importa os nossos modelos e o provider
+import 'package:fl_chart/fl_chart.dart';
 import 'package:habitflow/data/models/habito_model.dart';
 import 'package:habitflow/data/providers/habito_provider.dart';
 import 'package:habitflow/utils/app_colors.dart';
 import 'package:habitflow/widgets/progresso_habito_card.dart';
 import 'package:provider/provider.dart';
-// Importamos o ProgressoData que moveste
-import 'package:habitflow/data/models/progresso_data.model.dart';
 
-
-// A classe 'ProgressoData' FOI MOVIDA para lib/data/models/
-// Esta tela agora é um StatefulWidget apenas para carregar os dados no initState
 class ProgressoGeralScreen extends StatefulWidget {
   const ProgressoGeralScreen({super.key});
 
@@ -23,21 +16,14 @@ class ProgressoGeralScreen extends StatefulWidget {
 }
 
 class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
-  
-  // A lógica de 'loadData' e as variáveis de estado
-  // foram MOVIDAS para o HabitoProvider.
-
   @override
   void initState() {
     super.initState();
-    // Pede ao Provider para carregar os dados DESTA tela
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 'listen: false' é crucial no initState
       context.read<HabitoProvider>().carregarDadosProgresso();
     });
   }
 
-  // (A função _getIconForHabit foi mantida aqui pois é só da UI)
   IconData _getIconForHabit(Habito habito) {
     switch (habito.tipoMeta) {
       case 'Meta Numérica':
@@ -52,26 +38,22 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Agora "ouvimos" (watch) o provider para obter os dados
     final provider = context.watch<HabitoProvider>();
 
-    // As listas agora vêm do provider
     final habitosComPeriodo = provider.habitosComPeriodo;
     final habitosContinuos = provider.habitosContinuos;
 
-    // A lógica de 'where' continua igual, lendo da nova lista
     final habitosEmProgresso =
         habitosComPeriodo.where((p) => p.diasConcluidos < p.metaDias).toList();
     final habitosConcluidos =
         habitosComPeriodo.where((p) => p.diasConcluidos >= p.metaDias).toList();
 
     return Scaffold(
-    appBar: AppBar(
+      appBar: AppBar(
         title: const Text('Progresso de Metas'),
         centerTitle: true,
       ),
       body: SafeArea(
-        // Usamos a nova variável de loading do provider
         child: provider.isLoadingProgresso
             ? const Center(child: CircularProgressIndicator())
             : (habitosEmProgresso.isEmpty &&
@@ -81,17 +63,14 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
                     child: Text(
                       "Nenhum hábito com data de início encontrado.",
                       textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 18, color: AppColors.graphite),
+                      style: TextStyle(fontSize: 18, color: AppColors.graphite),
                     ),
                   )
-                // Usamos RefreshIndicator para permitir "puxar para atualizar"
                 : RefreshIndicator(
                     onRefresh: () => provider.carregarDadosProgresso(),
                     child: ListView(
                       padding: const EdgeInsets.all(16.0),
                       children: [
-                        // --- TAREFA 4: GRÁFICO ADICIONADO ---
                         const Text(
                           'Performance (Últimos 7 dias)',
                           style: TextStyle(
@@ -100,11 +79,10 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
                               color: AppColors.graphite),
                         ),
                         const SizedBox(height: 16),
-                        // Passamos os dados do provider para o novo widget
-                        _GraficoSemanal(performance: provider.performanceSemanal),
+                        _GraficoSemanal(
+                            performance: provider.performanceSemanal),
                         const SizedBox(height: 30),
-                        // --- FIM DA TAREFA 4 ---
-    
+
                         // --- Seção 1: Progresso de Metas ---
                         if (habitosEmProgresso.isNotEmpty) ...[
                           const Padding(
@@ -115,15 +93,16 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.graphite)),
                           ),
-                          ...habitosEmProgresso.map((item) => ProgressoHabitoCard(
-                                icon: _getIconForHabit(item.habito),
-                                nome: item.habito.nome,
-                                metaDias: item.metaDias,
-                                diasConcluidos: item.diasConcluidos,
-                              )),
+                          ...habitosEmProgresso
+                              .map((item) => ProgressoHabitoCard(
+                                    icon: _getIconForHabit(item.habito),
+                                    nome: item.habito.nome,
+                                    metaDias: item.metaDias,
+                                    diasConcluidos: item.diasConcluidos,
+                                  )),
                           const SizedBox(height: 30),
                         ],
-    
+
                         // --- Seção 2: Metas batidas ---
                         if (habitosConcluidos.isNotEmpty) ...[
                           const Text('Metas batidas:',
@@ -132,15 +111,16 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.graphite)),
                           const SizedBox(height: 10),
-                          ...habitosConcluidos.map((item) => ProgressoHabitoCard(
-                                icon: _getIconForHabit(item.habito),
-                                nome: item.habito.nome,
-                                metaDias: item.metaDias,
-                                diasConcluidos: item.diasConcluidos,
-                              )),
+                          ...habitosConcluidos
+                              .map((item) => ProgressoHabitoCard(
+                                    icon: _getIconForHabit(item.habito),
+                                    nome: item.habito.nome,
+                                    metaDias: item.metaDias,
+                                    diasConcluidos: item.diasConcluidos,
+                                  )),
                           const SizedBox(height: 30),
                         ],
-    
+
                         // --- Seção 3: Hábitos Contínuos ---
                         if (habitosContinuos.isNotEmpty) ...[
                           const Text('Hábitos Contínuos',
@@ -149,12 +129,12 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.graphite)),
                           const SizedBox(height: 10),
-                          ...habitosContinuos.map((item) =>
-                              _ProgressoContinuoCard(
-                                icon: _getIconForHabit(item.habito),
-                                nome: item.habito.nome,
-                                diasConcluidos: item.diasConcluidos,
-                              )),
+                          ...habitosContinuos
+                              .map((item) => _ProgressoContinuoCard(
+                                    icon: _getIconForHabit(item.habito),
+                                    nome: item.habito.nome,
+                                    diasConcluidos: item.diasConcluidos,
+                                  )),
                         ]
                       ],
                     ),
@@ -164,7 +144,7 @@ class _ProgressoGeralScreenState extends State<ProgressoGeralScreen> {
   }
 }
 
-// --- WIDGET DO CARD CONTÍNUO (Mantido) ---
+// --- WIDGET DO CARD CONTÍNUO ---
 class _ProgressoContinuoCard extends StatelessWidget {
   final IconData icon;
   final String nome;
@@ -215,7 +195,7 @@ class _ProgressoContinuoCard extends StatelessWidget {
   }
 }
 
-// --- NOVO WIDGET: GRÁFICO DE BARRAS (Tarefa 4) ---
+// GRÁFICO DE BARRAS (Tarefa 4) ---
 class _GraficoSemanal extends StatelessWidget {
   final List<PerformanceDia> performance;
   const _GraficoSemanal({required this.performance});
@@ -236,16 +216,9 @@ class _GraficoSemanal extends StatelessWidget {
               maxY: 100, // Gráfico vai de 0% a 100%
               barTouchData: BarTouchData(
                 touchTooltipData: BarTouchTooltipData(
-                  //
-                  // --- ESTA É A CORREÇÃO DO ERRO ---
-                  //
-                  // A propriedade antiga 'tooltipBgColor' foi substituída
-                  // pela nova propriedade 'getTooltipColor'.
                   getTooltipColor: (BarChartGroupData group) {
                     return AppColors.graphite;
                   },
-                  // --- FIM DA CORREÇÃO ---
-                  //
                   tooltipRoundedRadius: 8,
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     final dia = performance[groupIndex];
@@ -261,14 +234,17 @@ class _GraficoSemanal extends StatelessWidget {
               ),
               titlesData: FlTitlesData(
                 show: true,
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, meta) {
                       // Certifica que o índice está dentro dos limites
-                      if (value.toInt() < 0 || value.toInt() >= performance.length) {
+                      if (value.toInt() < 0 ||
+                          value.toInt() >= performance.length) {
                         return const Text('');
                       }
                       final dia = performance[value.toInt()];
@@ -294,7 +270,8 @@ class _GraficoSemanal extends StatelessWidget {
                       if (value == 0 || value == 50 || value == 100) {
                         return Text(
                           '${value.toInt()}%',
-                          style: const TextStyle(color: AppColors.graphite, fontSize: 12),
+                          style: const TextStyle(
+                              color: AppColors.graphite, fontSize: 12),
                           textAlign: TextAlign.left,
                         );
                       }
@@ -308,7 +285,7 @@ class _GraficoSemanal extends StatelessWidget {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                horizontalInterval: 25, // Linhas de grelha a cada 25%
+                horizontalInterval: 25,
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: AppColors.graphite.withOpacity(0.1),
                   strokeWidth: 1,
@@ -321,8 +298,10 @@ class _GraficoSemanal extends StatelessWidget {
                   x: index,
                   barRods: [
                     BarChartRodData(
-                      toY: dia.taxaConclusao * 100, // Converte 0.0-1.0 para 0-100
-                      color: dia.taxaConclusao > 0.7 ? AppColors.seaGreen : AppColors.teal,
+                      toY: dia.taxaConclusao * 100,
+                      color: dia.taxaConclusao > 0.7
+                          ? AppColors.seaGreen
+                          : AppColors.teal,
                       width: 16,
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(4),
