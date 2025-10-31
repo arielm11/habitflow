@@ -40,7 +40,7 @@ class DatabaseHelper {
         metaValor TEXT,
         ativo INTEGER NOT NULL,
         data_inicio TEXT,
-        data_termino TEXT
+        dataTermino TEXT
       )
     ''');
 
@@ -71,12 +71,14 @@ class DatabaseHelper {
       ''');
     }
     if (oldVersion < 4) {
-      await db.execute('ALTER TABLE $tableRegistros ADD COLUMN progressoAtual REAL NOT NULL DEFAULT 0');
-      await db.execute('CREATE UNIQUE INDEX idx_habito_data ON $tableRegistros(habitoId, data)');
+      await db.execute(
+          'ALTER TABLE $tableRegistros ADD COLUMN progressoAtual REAL NOT NULL DEFAULT 0');
+      await db.execute(
+          'CREATE UNIQUE INDEX idx_habito_data ON $tableRegistros(habitoId, data)');
     }
     if (oldVersion < 5) {
       await db.execute('ALTER TABLE $tableHabitos ADD COLUMN data_inicio TEXT');
-      await db.execute('ALTER TABLE $tableHabitos ADD COLUMN data_termino TEXT');
+      await db.execute('ALTER TABLE $tableHabitos ADD COLUMN dataTermino TEXT');
     }
   }
 
@@ -86,14 +88,13 @@ class DatabaseHelper {
     return await db.query(tableHabitos, orderBy: "id DESC");
   }
 
-  Future<List<Map<String, dynamic>>> queryActiveHabitsForDate(String data) async {
+  Future<List<Map<String, dynamic>>> queryActiveHabitsForDate(
+      String data) async {
     Database db = await instance.database;
-    return await db.query(
-      tableHabitos,
-      where: 'data_inicio <= ? AND (data_termino IS NULL OR data_termino >= ?)',
-      whereArgs: [data, data],
-      orderBy: "id DESC"
-    );
+    return await db.query(tableHabitos,
+        where: 'data_inicio <= ? AND (dataTermino IS NULL OR dataTermino >= ?)',
+        whereArgs: [data, data],
+        orderBy: "id DESC");
   }
 
   Future<int> insertHabit(Map<String, dynamic> row) async {
@@ -123,7 +124,7 @@ class DatabaseHelper {
       progressoAtual = progressoAtual + ?
     ''', [habitoId, hoje, valorAdicionado, valorAdicionado]);
   }
-  
+
   Future<List<Map<String, dynamic>>> queryRegistrosPorData(String data) async {
     Database db = await instance.database;
     return await db.query(tableRegistros, where: 'data = ?', whereArgs: [data]);
@@ -131,12 +132,14 @@ class DatabaseHelper {
 
   Future<void> deleteRegistro(int habitoId, String data) async {
     Database db = await instance.database;
-    await db.delete(tableRegistros, where: 'habitoId = ? AND data = ?', whereArgs: [habitoId, data]);
+    await db.delete(tableRegistros,
+        where: 'habitoId = ? AND data = ?', whereArgs: [habitoId, data]);
   }
-  
+
   Future<void> insertRegistro(Map<String, dynamic> row) async {
     Database db = await instance.database;
-    await db.insert(tableRegistros, row, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(tableRegistros, row,
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   // --- NOVAS FUNÇÕES ADICIONADAS PARA A TELA DE DETALHES ---
@@ -173,7 +176,9 @@ class DatabaseHelper {
     final hojeApenasData = DateTime(hoje.year, hoje.month, hoje.day);
 
     DateTime dataFinalConsiderada;
-    if (dataTerminoStr == null || dataTerminoStr.isEmpty || DateTime.parse(dataTerminoStr).isAfter(hojeApenasData)) {
+    if (dataTerminoStr == null ||
+        dataTerminoStr.isEmpty ||
+        DateTime.parse(dataTerminoStr).isAfter(hojeApenasData)) {
       dataFinalConsiderada = hojeApenasData;
     } else {
       dataFinalConsiderada = DateTime.parse(dataTerminoStr);
@@ -182,34 +187,31 @@ class DatabaseHelper {
     if (dataFinalConsiderada.isBefore(dataInicio)) {
       return 0;
     }
-    
+
     return dataFinalConsiderada.difference(dataInicio).inDays + 1;
   }
 
-Future<List<Map<String, dynamic>>> getHabitosDePeriodo() async {
-  Database db = await instance.database;
-  // A condição 'data_inicio IS NOT NULL' filtra apenas os hábitos que nos interessam.
-  return await db.query(
-    tableHabitos,
-    where: 'data_inicio IS NOT NULL AND data_inicio != ?',
-    whereArgs: [''], // Garante que data_inicio não seja uma string vazia
-    orderBy: "id DESC"
-  );
-}
+  Future<List<Map<String, dynamic>>> getHabitosDePeriodo() async {
+    Database db = await instance.database;
+    // A condição 'data_inicio IS NOT NULL' filtra apenas os hábitos que nos interessam.
+    return await db.query(tableHabitos,
+        where: 'data_inicio IS NOT NULL AND data_inicio != ?',
+        whereArgs: [''], // Garante que data_inicio não seja uma string vazia
+        orderBy: "id DESC");
+  }
+
   /// Orquestra a busca de todos os dados necessários para a tela de detalhes.
   Future<Map<String, dynamic>> getDadosProgresso(int habitoId) async {
     final habito = await getHabitoById(habitoId);
     final concluidos = await getTotalConclusoes(habitoId);
     // Adicionado '!' pois a data_inicio é obrigatória
-    final decorridos = calcularDiasDecorridos(habito.data_inicio!, habito.data_termino);
+    final decorridos =
+        calcularDiasDecorridos(habito.dataInicio!, habito.dataTermino);
 
     return {
       'habito': habito,
       'concluidos': concluidos,
       'decorridos': decorridos,
     };
-
-
-    
   }
 }

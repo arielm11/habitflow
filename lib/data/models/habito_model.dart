@@ -9,8 +9,8 @@ class Habito {
   final bool ativo;
 
   // --- MUDANÇA 1: Adicionar os campos de data ---
-  final String? data_inicio; // Formato 'AAAA-MM-DD'
-  final String? data_termino; // Formato 'AAAA-MM-DD', pode ser nulo
+  final String? dataInicio; // Formato 'AAAA-MM-DD'
+  final String? dataTermino; // Formato 'AAAA-MM-DD', pode ser nulo
 
   Habito({
     this.id,
@@ -20,8 +20,8 @@ class Habito {
     this.metaValor,
     required this.ativo,
     // --- MUDANÇA 2: Adicionar ao construtor ---
-    this.data_inicio,
-    this.data_termino,
+    this.dataInicio,
+    this.dataTermino,
   });
 
   Map<String, dynamic> toMap() {
@@ -33,8 +33,8 @@ class Habito {
       'metaValor': metaValor,
       'ativo': ativo ? 1 : 0,
       // --- MUDANÇA 3: Adicionar ao mapa para salvar no DB ---
-      'data_inicio': data_inicio,
-      'data_termino': data_termino,
+      'dataInicio': dataInicio,
+      'dataTermino': dataTermino,
     };
   }
 
@@ -47,8 +47,8 @@ class Habito {
       metaValor: map['metaValor'],
       ativo: map['ativo'] == 1,
       // --- MUDANÇA 4: Ler do mapa vindo do DB ---
-      data_inicio: map['data_inicio'] as String?,
-      data_termino: map['data_termino'] as String?,
+      dataInicio: map['dataInicio'] as String?,
+      dataTermino: map['dataTermino'] as String?,
     );
   }
 }
