@@ -15,13 +15,11 @@ class DetalhesHabitoScreen extends StatefulWidget {
 }
 
 class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
-  // Este Future vai guardar o resultado da nossa busca no banco de dados.
   late Future<Map<String, dynamic>> _dadosProgressoFuture;
 
   @override
   void initState() {
     super.initState();
-    // Ao iniciar a tela, chamamos a função que busca os dados no DatabaseHelper.
     _dadosProgressoFuture =
         DatabaseHelper.instance.getDadosProgresso(widget.habitoId);
   }
@@ -143,7 +141,7 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
                       const Icon(Icons.info_outline, color: AppColors.graphite),
                       const SizedBox(width: 8),
                       Text(
-                        'Período: ${habito.data_inicio} até ${habito.data_termino ?? 'sem data final'}',
+                        'Período: ${habito.dataInicio} até ${habito.dataTermino ?? 'sem data final'}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontStyle: FontStyle.italic,
@@ -156,7 +154,6 @@ class _DetalhesHabitoScreenState extends State<DetalhesHabitoScreen> {
             );
           }
 
-          // Caso não haja dados.
           return const Center(child: Text('Nenhum detalhe encontrado.'));
         },
       ),

@@ -13,16 +13,13 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  // Guarda o índice (0 ou 1) da aba que está selecionada.
   int _selectedIndex = 0;
 
-  // Lista das telas que o menu irá controlar.
   static const List<Widget> _widgetOptions = <Widget>[
-    HomePage(), // Aba 0
-    ProgressoGeralScreen(), // Aba 1
+    HomePage(),
+    ProgressoGeralScreen(),
   ];
 
-  // Função chamada quando o usuário toca em um item do menu.
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -32,18 +29,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // O corpo agora usa um IndexedStack.
-      // Isso é uma melhoria importante: ele mantém o estado das telas
-      // ao trocar de aba. Por exemplo, se o usuário rolar a lista na
-      // HomePage, ao trocar de aba e voltar, a rolagem continuará lá.
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _widgetOptions,
-      ),
+      // --- CORREÇÃO APLICADA AQUI ---
+      // Trocamos o IndexedStack para forçar a reconstrução da tela
+      // a cada troca de aba, garantindo que os dados do Provider
+      // sejam sempre os mais recentes.
+      body: _widgetOptions.elementAt(_selectedIndex),
 
-      // Aqui criamos o menu inferior.
       bottomNavigationBar: BottomNavigationBar(
-        // Itens do menu
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -56,11 +48,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
             label: 'Progresso',
           ),
         ],
-        currentIndex: _selectedIndex, // Qual aba está ativa
-        selectedItemColor: AppColors.teal, // Cor da aba ativa
-        unselectedItemColor:
-            AppColors.graphite.withOpacity(0.7), // Cor das inativas
-        onTap: _onItemTapped, // O que fazer ao tocar
+        currentIndex: _selectedIndex,
+        selectedItemColor: AppColors.teal,
+        unselectedItemColor: AppColors.graphite.withOpacity(0.7),
+        onTap: _onItemTapped,
         backgroundColor: AppColors.background,
         elevation: 8.0,
       ),
