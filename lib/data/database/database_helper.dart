@@ -1,10 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:habitflow/data/models/habito_model.dart'; // ADICIONADO IMPORT
+import 'package:habitflow/data/models/habito_model.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'habitflow.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
 
   static const tableHabitos = 'habitos';
   static const tableRegistros = 'registros_progresso';
@@ -39,8 +39,10 @@ class DatabaseHelper {
         tipoMeta TEXT NOT NULL,
         metaValor TEXT,
         ativo INTEGER NOT NULL,
-        data_inicio TEXT,
-        dataTermino TEXT
+        dataInicio TEXT,
+        dataTermino TEXT,
+        itemLembrete INTEGER NOT NULL DEFAULT 0,
+        horaLembrete TEXT
       )
     ''');
 
@@ -77,8 +79,14 @@ class DatabaseHelper {
           'CREATE UNIQUE INDEX idx_habito_data ON $tableRegistros(habitoId, data)');
     }
     if (oldVersion < 5) {
-      await db.execute('ALTER TABLE $tableHabitos ADD COLUMN data_inicio TEXT');
+      await db.execute('ALTER TABLE $tableHabitos ADD COLUMN dataInicio TEXT');
       await db.execute('ALTER TABLE $tableHabitos ADD COLUMN dataTermino TEXT');
+    }
+    if (oldVersion < 6) {
+      await db.execute(
+          'ALTER TABLE $tableHabitos ADD COLUMN itemLembrete INTEGER NOT NULL DEFAULT 0');
+      await db
+          .execute('ALTER TABLE $tableHabitos ADD COLUMN horaLembrete TEXT');
     }
   }
 
@@ -92,7 +100,7 @@ class DatabaseHelper {
       String data) async {
     Database db = await instance.database;
     return await db.query(tableHabitos,
-        where: 'data_inicio <= ? AND (dataTermino IS NULL OR dataTermino >= ?)',
+        where: 'dataInicio <= ? AND (dataTermino IS NULL OR dataTermino >= ?)',
         whereArgs: [data, data],
         orderBy: "id DESC");
   }
@@ -142,9 +150,8 @@ class DatabaseHelper {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  // --- NOVAS FUNÇÕES ADICIONADAS PARA A TELA DE DETALHES ---
+  // --- FUNÇÕES PARA A TELA DE DETALHES ---
 
-  /// Busca um único hábito pelo seu ID.
   Future<Habito> getHabitoById(int id) async {
     final db = await instance.database;
     final maps = await db.query(
@@ -159,7 +166,6 @@ class DatabaseHelper {
     }
   }
 
-  /// Conta o total de dias que um hábito foi concluído.
   Future<int> getTotalConclusoes(int habitoId) async {
     final db = await instance.database;
     final resultado = await db.rawQuery(
@@ -169,7 +175,6 @@ class DatabaseHelper {
     return Sqflite.firstIntValue(resultado) ?? 0;
   }
 
-  /// Calcula quantos dias se passaram desde o início do hábito até hoje.
   int calcularDiasDecorridos(String dataInicioStr, String? dataTerminoStr) {
     final dataInicio = DateTime.parse(dataInicioStr);
     final hoje = DateTime.now();
@@ -193,18 +198,15 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getHabitosDePeriodo() async {
     Database db = await instance.database;
-    // A condição 'data_inicio IS NOT NULL' filtra apenas os hábitos que nos interessam.
     return await db.query(tableHabitos,
-        where: 'data_inicio IS NOT NULL AND data_inicio != ?',
-        whereArgs: [''], // Garante que data_inicio não seja uma string vazia
+        where: 'dataInicio IS NOT NULL AND dataInicio != ?',
+        whereArgs: [''],
         orderBy: "id DESC");
   }
 
-  /// Orquestra a busca de todos os dados necessários para a tela de detalhes.
   Future<Map<String, dynamic>> getDadosProgresso(int habitoId) async {
     final habito = await getHabitoById(habitoId);
     final concluidos = await getTotalConclusoes(habitoId);
-    // Adicionado '!' pois a data_inicio é obrigatória
     final decorridos =
         calcularDiasDecorridos(habito.dataInicio!, habito.dataTermino);
 

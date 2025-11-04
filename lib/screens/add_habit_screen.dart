@@ -1,9 +1,10 @@
 // lib/screens/add_habit_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:habitflow/data/database/database_helper.dart';
 import 'package:habitflow/data/models/habito_model.dart';
 import 'package:habitflow/utils/app_colors.dart';
+import 'package:provider/provider.dart'; // <<< ADICIONE ESTA LINHA
+import 'package:habitflow/data/providers/habito_provider.dart';
 
 class AddHabitScreen extends StatefulWidget {
   final Habito? habito;
@@ -26,6 +27,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
   DateTime? _dataInicio;
   DateTime? _dataTermino;
+
+  bool _itemLembrete = false;
+  TimeOfDay? _horaLembrete;
 
   @override
   void initState() {
@@ -52,6 +56,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       if (widget.habito!.dataTermino != null &&
           widget.habito!.dataTermino!.isNotEmpty) {
         _dataTermino = DateTime.parse(widget.habito!.dataTermino!);
+      }
+
+      _itemLembrete = widget.habito!.itemLembrete;
+      if (widget.habito!.horaLembrete != null) {
+        final parts = widget.habito!.horaLembrete!.split(':');
+        _horaLembrete =
+            TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       }
     }
   }
@@ -85,6 +96,20 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     }
   }
 
+  Future<void> _selecionarHora(BuildContext context) async {
+    final TimeOfDay? horaSelecionada = await showTimePicker(
+      context: context,
+      initialTime: _horaLembrete ?? TimeOfDay.now(),
+    );
+
+    if (horaSelecionada != null) {
+      setState(() {
+        _horaLembrete = horaSelecionada;
+        _itemLembrete = true;
+      });
+    }
+  }
+
   Future<void> _saveHabit() async {
     if (_formKey.currentState!.validate()) {
       String? metaValorFinal;
@@ -102,6 +127,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       final String? dataTerminoFormatada =
           _dataTermino?.toIso8601String().substring(0, 10);
 
+      final String? horaLembreteFormatada = _itemLembrete &&
+              _horaLembrete != null
+          ? '${_horaLembrete!.hour.toString().padLeft(2, '0')}:${_horaLembrete!.minute.toString().padLeft(2, '0')}'
+          : null;
+
+      final provider = context.read<HabitoProvider>();
+
       if (_isEditing) {
         final updatedHabit = Habito(
           id: widget.habito!.id,
@@ -112,8 +144,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           ativo: widget.habito!.ativo,
           dataInicio: dataInicioFormatada,
           dataTermino: dataTerminoFormatada,
+          itemLembrete: _itemLembrete,
+          horaLembrete: horaLembreteFormatada,
         );
-        await DatabaseHelper.instance.updateHabit(updatedHabit.toMap());
+        await provider.atualizarHabito(updatedHabit);
       } else {
         final newHabit = Habito(
           nome: _nameController.text,
@@ -123,8 +157,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           ativo: true,
           dataInicio: dataInicioFormatada,
           dataTermino: dataTerminoFormatada,
+          itemLembrete: _itemLembrete,
+          horaLembrete: horaLembreteFormatada,
         );
-        await DatabaseHelper.instance.insertHabit(newHabit.toMap());
+        await provider.criarHabito(newHabit);
       }
 
       if (mounted) {
@@ -265,6 +301,39 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                         )
                       : null,
                   onTap: () => _selecionarData(context, isInicio: false),
+                ),
+
+                // --- SEÇÃO DE SELEÇÃO DE LEMBRETES ---
+                const SizedBox(height: 24),
+                const Text('Lembretes', style: TextStyle(fontSize: 16)),
+
+                SwitchListTile(
+                  title: const Text('Ativar lembrete'),
+                  value: _itemLembrete,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _itemLembrete = value;
+                      if (_itemLembrete && _horaLembrete == null) {
+                        _horaLembrete = const TimeOfDay(hour: 12, minute: 0);
+                      }
+                    });
+                  },
+                ),
+
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 300),
+                  crossFadeState: _itemLembrete
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: ListTile(
+                    leading: const Icon(Icons.alarm),
+                    title: const Text('Hora do Lembrete'),
+                    subtitle: Text(_horaLembrete == null
+                        ? 'Escolha uma hora'
+                        : _horaLembrete!.format(context)),
+                    onTap: () => _selecionarHora(context),
+                  ),
+                  secondChild: Container(),
                 ),
 
                 const SizedBox(height: 32),

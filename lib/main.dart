@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:habitflow/data/providers/habito_provider.dart'; // <<< 1. IMPORT DO PROVIDER
 import 'package:habitflow/screens/navigation_screen.dart';
 import 'package:habitflow/screens/onboarding_screen.dart';
 import 'package:habitflow/utils/app_colors.dart';
-import 'package:provider/provider.dart'; // <<< 2. IMPORT DO PACOTE PROVIDER
+import 'package:habitflow/data/providers/habito_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:habitflow/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermissions();
+
   final prefs = await SharedPreferences.getInstance();
   final bool hasSeenOnboarding = prefs.getBool('hasSeenOnBoarding') ?? false;
 
-  // --- MELHORIA APLICADA AQUI ---
-  // Envolvemos o app com o ChangeNotifierProvider para que o HabitoProvider
-  // fique disponível em toda a árvore de widgets.
   runApp(
     ChangeNotifierProvider(
       create: (context) => HabitoProvider(),
