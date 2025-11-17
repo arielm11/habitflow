@@ -1,9 +1,10 @@
 // lib/screens/add_habit_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:habitflow/data/database/database_helper.dart';
 import 'package:habitflow/data/models/habito_model.dart';
 import 'package:habitflow/utils/app_colors.dart';
+import 'package:provider/provider.dart';
+import 'package:habitflow/data/providers/habito_provider.dart';
 
 class AddHabitScreen extends StatefulWidget {
   final Habito? habito;
@@ -27,6 +28,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   DateTime? _dataInicio;
   DateTime? _dataTermino;
 
+  bool _itemLembrete = false;
+  TimeOfDay? _horaLembrete;
+
   @override
   void initState() {
     super.initState();
@@ -44,12 +48,21 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           _metaUnidadecontroller.text = parts.sublist(1).join(' ');
         }
       }
-      
-      if (widget.habito!.data_inicio != null && widget.habito!.data_inicio!.isNotEmpty) {
-        _dataInicio = DateTime.parse(widget.habito!.data_inicio!);
+
+      if (widget.habito!.dataInicio != null &&
+          widget.habito!.dataInicio!.isNotEmpty) {
+        _dataInicio = DateTime.parse(widget.habito!.dataInicio!);
       }
-      if (widget.habito!.data_termino != null && widget.habito!.data_termino!.isNotEmpty) {
-        _dataTermino = DateTime.parse(widget.habito!.data_termino!);
+      if (widget.habito!.dataTermino != null &&
+          widget.habito!.dataTermino!.isNotEmpty) {
+        _dataTermino = DateTime.parse(widget.habito!.dataTermino!);
+      }
+
+      _itemLembrete = widget.habito!.itemLembrete;
+      if (widget.habito!.horaLembrete != null) {
+        final parts = widget.habito!.horaLembrete!.split(':');
+        _horaLembrete =
+            TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       }
     }
   }
@@ -63,7 +76,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     super.dispose();
   }
 
-  Future<void> _selecionarData(BuildContext context, {required bool isInicio}) async {
+  Future<void> _selecionarData(BuildContext context,
+      {required bool isInicio}) async {
     final DateTime? dataSelecionada = await showDatePicker(
       context: context,
       initialDate: (isInicio ? _dataInicio : _dataTermino) ?? DateTime.now(),
@@ -82,21 +96,43 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     }
   }
 
+  Future<void> _selecionarHora(BuildContext context) async {
+    final TimeOfDay? horaSelecionada = await showTimePicker(
+      context: context,
+      initialTime: _horaLembrete ?? TimeOfDay.now(),
+    );
+
+    if (horaSelecionada != null) {
+      setState(() {
+        _horaLembrete = horaSelecionada;
+        _itemLembrete = true;
+      });
+    }
+  }
+
   Future<void> _saveHabit() async {
     if (_formKey.currentState!.validate()) {
       String? metaValorFinal;
-      if (_selectedGoalType == 'Meta Numérica' || _selectedGoalType == 'Duração') {
+      if (_selectedGoalType == 'Meta Numérica' ||
+          _selectedGoalType == 'Duração') {
         final valor = _metaValorController.text.trim();
         final unidade = _metaUnidadecontroller.text.trim();
         if (valor.isNotEmpty && unidade.isNotEmpty) {
           metaValorFinal = '$valor $unidade';
         }
       }
-      
-      final String dataInicioFormatada = (_dataInicio ?? DateTime.now())
-          .toIso8601String().substring(0, 10);
-      final String? dataTerminoFormatada = _dataTermino
-          ?.toIso8601String().substring(0, 10);
+
+      final String dataInicioFormatada =
+          (_dataInicio ?? DateTime.now()).toIso8601String().substring(0, 10);
+      final String? dataTerminoFormatada =
+          _dataTermino?.toIso8601String().substring(0, 10);
+
+      final String? horaLembreteFormatada = _itemLembrete &&
+              _horaLembrete != null
+          ? '${_horaLembrete!.hour.toString().padLeft(2, '0')}:${_horaLembrete!.minute.toString().padLeft(2, '0')}'
+          : null;
+
+      final provider = context.read<HabitoProvider>();
 
       if (_isEditing) {
         final updatedHabit = Habito(
@@ -106,10 +142,12 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           tipoMeta: _selectedGoalType,
           metaValor: metaValorFinal,
           ativo: widget.habito!.ativo,
-          data_inicio: dataInicioFormatada,
-          data_termino: dataTerminoFormatada,
+          dataInicio: dataInicioFormatada,
+          dataTermino: dataTerminoFormatada,
+          itemLembrete: _itemLembrete,
+          horaLembrete: horaLembreteFormatada,
         );
-        await DatabaseHelper.instance.updateHabit(updatedHabit.toMap());
+        await provider.atualizarHabito(updatedHabit);
       } else {
         final newHabit = Habito(
           nome: _nameController.text,
@@ -117,10 +155,12 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           tipoMeta: _selectedGoalType,
           metaValor: metaValorFinal,
           ativo: true,
-          data_inicio: dataInicioFormatada,
-          data_termino: dataTerminoFormatada,
+          dataInicio: dataInicioFormatada,
+          dataTermino: dataTerminoFormatada,
+          itemLembrete: _itemLembrete,
+          horaLembrete: horaLembreteFormatada,
         );
-        await DatabaseHelper.instance.insertHabit(newHabit.toMap());
+        await provider.criarHabito(newHabit);
       }
 
       if (mounted) {
@@ -170,7 +210,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 ),
                 const SizedBox(height: 24),
                 // --- SELETOR PARA O TIPO DE META ---
-                const Text('Qual o tipo de meta?', style: TextStyle(fontSize: 16)),
+                const Text('Qual o tipo de meta?',
+                    style: TextStyle(fontSize: 16)),
                 DropdownButton<String>(
                   value: _selectedGoalType,
                   isExpanded: true,
@@ -191,7 +232,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
                 // --- CAMPOS CONDICIONAIS PARA A META ---
                 Visibility(
-                  visible: _selectedGoalType == 'Meta Numérica' || _selectedGoalType == 'Duração',
+                  visible: _selectedGoalType == 'Meta Numérica' ||
+                      _selectedGoalType == 'Duração',
                   child: Column(
                     children: [
                       TextFormField(
@@ -219,7 +261,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                           hintText: 'Ex: páginas, litros, minutos',
                           border: OutlineInputBorder(),
                         ),
-                          validator: (value) {
+                        validator: (value) {
                           if (_selectedGoalType != 'Feito/Não Feito') {
                             if (value == null || value.isEmpty) {
                               return 'Por favor, insira uma unidade.';
@@ -234,30 +276,64 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
                 // --- SEÇÃO DE SELEÇÃO DE DATAS ---
                 const SizedBox(height: 24),
-                const Text('Período do Hábito (opcional)', style: TextStyle(fontSize: 16)),
-                
+                const Text('Período do Hábito (opcional)',
+                    style: TextStyle(fontSize: 16)),
+
                 ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: const Text('Data de Início'),
-                  subtitle: Text(_dataInicio == null 
-                      ? 'Hoje' 
+                  subtitle: Text(_dataInicio == null
+                      ? 'Hoje'
                       : '${_dataInicio!.day}/${_dataInicio!.month}/${_dataInicio!.year}'),
                   onTap: () => _selecionarData(context, isInicio: true),
                 ),
-                
+
                 ListTile(
                   leading: const Icon(Icons.calendar_today_outlined),
                   title: const Text('Data de Término'),
-                  subtitle: Text(_dataTermino == null 
-                      ? 'Sem data final' 
+                  subtitle: Text(_dataTermino == null
+                      ? 'Sem data final'
                       : '${_dataTermino!.day}/${_dataTermino!.month}/${_dataTermino!.year}'),
-                  trailing: _dataTermino != null 
+                  trailing: _dataTermino != null
                       ? IconButton(
-                          icon: const Icon(Icons.clear), 
+                          icon: const Icon(Icons.clear),
                           onPressed: () => setState(() => _dataTermino = null),
-                        ) 
+                        )
                       : null,
                   onTap: () => _selecionarData(context, isInicio: false),
+                ),
+
+                // --- SEÇÃO DE SELEÇÃO DE LEMBRETES ---
+                const SizedBox(height: 24),
+                const Text('Lembretes', style: TextStyle(fontSize: 16)),
+
+                SwitchListTile(
+                  title: const Text('Ativar lembrete'),
+                  value: _itemLembrete,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _itemLembrete = value;
+                      if (_itemLembrete && _horaLembrete == null) {
+                        _horaLembrete = const TimeOfDay(hour: 12, minute: 0);
+                      }
+                    });
+                  },
+                ),
+
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 300),
+                  crossFadeState: _itemLembrete
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: ListTile(
+                    leading: const Icon(Icons.alarm),
+                    title: const Text('Hora do Lembrete'),
+                    subtitle: Text(_horaLembrete == null
+                        ? 'Escolha uma hora'
+                        : _horaLembrete!.format(context)),
+                    onTap: () => _selecionarHora(context),
+                  ),
+                  secondChild: Container(),
                 ),
 
                 const SizedBox(height: 32),
@@ -269,7 +345,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
+                  child:
+                      Text(_isEditing ? 'Salvar Alterações' : 'Salvar Hábito'),
                 ),
               ],
             ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:habitflow/data/database/database_helper.dart';
 import 'package:habitflow/data/models/habito_model.dart';
 import 'package:habitflow/data/models/progresso_data.model.dart';
+import 'package:habitflow/services/notification_service.dart';
 
 class HabitoComProgresso {
   final Habito habito;
@@ -30,6 +31,8 @@ class HabitoProvider with ChangeNotifier {
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
+  final NotificationService _notificationService = NotificationService();
+
   List<HabitoComProgresso> _habitosDoDia = [];
   List<Habito> _habitosDePeriodo = [];
   final Map<int, int> _progressoTotal = {};
@@ -39,6 +42,25 @@ class HabitoProvider with ChangeNotifier {
   List<Habito> get habitosDePeriodo => _habitosDePeriodo;
   int getProgressoTotal(int habitoId) => _progressoTotal[habitoId] ?? 0;
   bool get isLoading => _isLoading;
+
+  Future<void> _gerenciarLembrete(Habito habito) async {
+    if (habito.id == null) return;
+
+    if (habito.itemLembrete && habito.horaLembrete != null) {
+      final parts = habito.horaLembrete!.split(':');
+      final time =
+          TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+
+      await _notificationService.scheduleDailyNotification(
+        habito.id!,
+        'Lembrete de Hábito: ${habito.nome}', // Título
+        'Não se esqueça de completar seu hábito hoje!', // Corpo
+        time,
+      );
+    } else {
+      await _notificationService.cancelNotification(habito.id!);
+    }
+  }
 
   Future<void> carregarDadosProgresso() async {
     if (_isLoadingProgresso) return;
@@ -224,6 +246,33 @@ class HabitoProvider with ChangeNotifier {
 
   Future<void> deletarHabito(int habitoId) async {
     await _dbHelper.deleteHabit(habitoId);
+    await _notificationService.cancelNotification(habitoId);
+    await carregarTodosOsDados();
+  }
+
+  Future<void> criarHabito(Habito habito) async {
+    final novoId = await _dbHelper.insertHabit(habito.toMap());
+
+    final habitoComId = Habito(
+      id: novoId,
+      nome: habito.nome,
+      descricao: habito.descricao,
+      tipoMeta: habito.tipoMeta,
+      metaValor: habito.metaValor,
+      ativo: habito.ativo,
+      dataInicio: habito.dataInicio,
+      dataTermino: habito.dataTermino,
+      itemLembrete: habito.itemLembrete,
+      horaLembrete: habito.horaLembrete,
+    );
+
+    await _gerenciarLembrete(habitoComId);
+    await carregarTodosOsDados();
+  }
+
+  Future<void> atualizarHabito(Habito habito) async {
+    await _dbHelper.updateHabit(habito.toMap());
+    await _gerenciarLembrete(habito);
     await carregarTodosOsDados();
   }
 }

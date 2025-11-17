@@ -29,12 +29,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- CORREÇÃO APLICADA AQUI ---
-      // Trocamos o IndexedStack para forçar a reconstrução da tela
-      // a cada troca de aba, garantindo que os dados do Provider
-      // sejam sempre os mais recentes.
       body: _widgetOptions.elementAt(_selectedIndex),
-
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
