@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:habitflow/data/models/habito_model.dart';
 import 'package:habitflow/utils/app_colors.dart';
-import 'package:provider/provider.dart'; // <<< ADICIONE ESTA LINHA
+import 'package:provider/provider.dart';
 import 'package:habitflow/data/providers/habito_provider.dart';
 
 class AddHabitScreen extends StatefulWidget {
